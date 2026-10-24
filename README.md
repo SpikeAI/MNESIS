@@ -35,13 +35,13 @@ MNESIS/
 │        ├── 14_MNESIS_testing-noise.ipynb          # Robustness to bit-flip noise
 │        ├── 15_MNESIS_testing-trigger-duration.ipynb    # Effect of trigger-window length
 │        ├── 16_MNESIS_testing-trigger-fraction.ipynb    # Effect of partial neuron coverage
+│        ├── 18_MNESIS_learn-periodic.ipynb    # Learning and retrieval of periodic memories
 │        ├── 20_MNESIS_scanning-parameters.ipynb # Parameter scans (D, T, p_A, ...)
 │        ├── 25_MNESIS_optuna.ipynb            # Hyperparameter optimisation (Optuna)
-│        ├── 30_MNESIS_learn-periodic.ipynb    # Learning and retrieval of periodic memories
 │        ├── 32_MNESIS_learn-travelling-waves.ipynb # Structured spatiotemporal travelling waves
 │        ├── 34_MNESIS_learn-Lorenz-attractor.ipynb # Chaotic trajectory encoding and recall
 │        ├── 36_MNESIS_learn-text.ipynb        # Token-text corpus → spike codebook → recall
-│        ├── 40_MNESIS_learn-SHD.ipynb         # Spiking Heidelberg Digits experiments
+│        ├── 38_MNESIS_learn-SHD.ipynb         # Spiking Heidelberg Digits experiments
 │        ├── 99_MNESIS_run-all.ipynb           # End-to-end notebook orchestrator
 │        └── requirements.txt                  # Python dependencies for notebook runs
 ├── figures/                       # Generated figures (PDF/PNG)
@@ -90,13 +90,13 @@ run for the pattern family being studied.
 | 14 | `14_MNESIS_testing-noise.ipynb` | Bit-flip noise on the trigger window ($p_\mathrm{flip} \in [0, 1]$). Quantifies attractor-like robustness; $F_1 = 0.967$ at $p_\mathrm{flip} = 0.25$. |
 | 15 | `15_MNESIS_testing-trigger-duration.ipynb` | Truncated trigger window (0 to $D-1$ steps). Finds the minimum cue length for reliable recall; $F_1 = 0.862$ at 75% of $D$. |
 | 16 | `16_MNESIS_testing-trigger-fraction.ipynb` | Partial neuron coverage (0 to $N$ neurons silenced in trigger). Perfect recall maintained with 87.5% of neurons active. |
+| 18 | `18_MNESIS_learn-periodic.ipynb` | Builds periodic targets, trains periodic memories, and evaluates retrieval robustness under increasing input noise. |
 | 20 | `20_MNESIS_scanning-parameters.ipynb` | Systematic one-at-a-time scans over $D$, $T$, $p_A$, $N$, $E_\mathrm{SM}$, $p_\mathrm{SM}$, and the new `do_pinv` / `do_deconv` flags, with $N_\mathrm{cv} = 10$ seeds. Produces the parameter-scan figures of the paper. |
 | 25 | `25_MNESIS_optuna.ipynb` | Automated hyperparameter search with [Optuna](https://optuna.org/) over learning dynamics, thresholds, and regularisation. |
-| 30 | `30_MNESIS_learn-periodic.ipynb` | Builds periodic targets, trains periodic memories, and evaluates retrieval robustness under increasing input noise. |
 | 32 | `32_MNESIS_learn-travelling-waves.ipynb` | Introduces MotionClouds-based travelling-wave patterns and benchmarks retrieval with structured spatiotemporal motifs. |
 | 34 | `34_MNESIS_learn-Lorenz-attractor.ipynb` | Encodes Lorenz chaotic trajectories into spike codes and evaluates memory recall on non-periodic continuous dynamics. |
 | 36 | `36_MNESIS_learn-text.ipynb` | Tokenises a Wikipedia corpus (`tiktoken`, `cl100k_base`) into token IDs, builds a frequency-ordered **spike codebook** (most-frequent tokens get the sparsest neuron rows, minimising the Hamming distance), wraps it in a `TextSpikingPattern` generator, learns and recalls the resulting spike patterns, then decodes the output spikes back to text via the inverse codebook + tokenizer. Includes Optuna tuning and parameter scans. |
-| 40 | `40_MNESIS_learn-SHD.ipynb` | Integrates Spiking Heidelberg Digits data loading/preprocessing for dataset-grounded experiments. |
+| 38 | `38_MNESIS_learn-SHD.ipynb` | Integrates Spiking Heidelberg Digits data loading/preprocessing for dataset-grounded experiments. |
 | 99 | `99_MNESIS_run-all.ipynb` | Scripted orchestrator to run the full notebook pipeline with progress timestamps. |
 
 ### Cached data

@@ -98,16 +98,16 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 ```{toctree}
 :maxdepth: 1
 
-notebooks/30_MNESIS_learn-periodic
+notebooks/18_MNESIS_learn-periodic
 notebooks/32_MNESIS_learn-travelling-waves
 notebooks/34_MNESIS_learn-Lorenz-attractor
 notebooks/36_MNESIS_learn-text
 notebooks/36_MNESIS_learn-text-alice
 notebooks/36_MNESIS_learn-text-alice-onehot
-notebooks/40_MNESIS_learn-SHD
+notebooks/38_MNESIS_learn-SHD
 ```
 
-- {doc}`notebooks/30_MNESIS_learn-periodic` — builds periodic targets, trains
+- {doc}`notebooks/18_MNESIS_learn-periodic` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
   noise.
 - {doc}`notebooks/32_MNESIS_learn-travelling-waves` — MotionClouds-based
@@ -127,7 +127,7 @@ notebooks/40_MNESIS_learn-SHD
   {doc}`notebooks/36_MNESIS_learn-text-alice-onehot` — variants of the text
   experiment on a fixed Alice-in-Wonderland-style corpus (the one-hot version
   encodes tokens as one-hot spike patterns).
-- {doc}`notebooks/40_MNESIS_learn-SHD` — Spiking Heidelberg Digits data
+- {doc}`notebooks/38_MNESIS_learn-SHD` — Spiking Heidelberg Digits data
   loading/preprocessing for dataset-grounded experiments with real spiking
   recordings.
 
