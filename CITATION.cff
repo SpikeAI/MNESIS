@@ -1,0 +1,60 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite the accompanying paper
+  (preferred-citation below) and, where relevant, this repository.
+type: software
+title: >-
+  MNESIS: Working Memory in a Recurrent Spiking Neural Network with
+  Heterogeneous Synaptic Delays
+abstract: >-
+  MNESIS is a recurrent spiking neural network (SNN) in which every synapse
+  carries D learnable delays, parameterised as a single weight tensor of
+  shape N x N x D. Each stored motif is encoded as a chain of overlapping
+  Spiking Motifs: contiguous context windows of length D that uniquely
+  predict the next time step of activity. A closed-form initialisation,
+  derived by deconvolving the LIF membrane response, is refined with
+  surrogate-gradient backpropagation through time. The repository contains
+  the Python implementation, the experiment notebooks and the LaTeX source
+  of the paper.
+authors:
+  - family-names: Perrinet
+    given-names: Laurent U.
+    email: laurent.perrinet@cnrs.fr
+    affiliation: >-
+      Institut de Neurosciences de la Timone (UMR 7289),
+      Aix Marseille Univ, CNRS, Marseille, France
+    orcid: 'https://orcid.org/0000-0002-9536-010X'
+repository-code: 'https://github.com/laurentperrinet/MNESIS'
+url: 'https://laurentperrinet.github.io/publication/perrinet-26-icann/'
+license: GPL-3.0
+date-released: '2026-10-24'
+keywords:
+  - spiking neural networks
+  - polychronization
+  - heterogeneous delays
+  - working memory
+  - surrogate gradient
+  - snntorch
+preferred-citation:
+  type: conference-paper
+  title: >-
+    Working Memory in Recurrent Spiking Neural Networks With Heterogeneous
+    Synaptic Delays
+  authors:
+    - family-names: Perrinet
+      given-names: Laurent U.
+      affiliation: >-
+        Institut de Neurosciences de la Timone (UMR 7289),
+        Aix Marseille Univ, CNRS, Marseille, France
+      orcid: 'https://orcid.org/0000-0002-9536-010X'
+  conference:
+    name: International Conference on Artificial Neural Networks (ICANN 2026)
+  year: 2026
+  url: 'https://laurentperrinet.github.io/publication/perrinet-26-icann/'
+  identifiers:
+    - type: doi
+      value: 10.48550/arXiv.2604.14096
+      description: arXiv preprint
+    - type: url
+      value: 'https://arxiv.org/abs/2604.14096'
+      description: arXiv abstract page
