@@ -45,7 +45,7 @@
   \Department \\
   \Affiliation \\
   \Street, \PostCode\ \City, \Country \\
-  \url{\WebsiteLP/perrinet-26}
+  \url{\WebsiteLP/publication/perrinet-26-icann}
   % official institution "Aix Marseille Univ, CNRS, INT, Inst Neurosci Timone, Marseille, France" 
 }
 \date{\today}
@@ -262,7 +262,7 @@ The loss grows monotonically with $T$, from $\mathcal{L} \approx 0.004$ at $T = 
 
 Taken together, the  scans quantitatively validate the theoretical framework: delay depth is the primary capacity lever (loss $\propto 1/(N \cdot D \cdot p_A)$), pattern duration is the primary difficulty lever, and firing rate sets the orthogonality regime that determines whether initialisation and learning converge. These results suggest that the most efficient path to storing longer patterns is to increase $D$ rather than $N$, since $D$ enters both the parameter capacity $N^2 \cdot D$ and the context orthogonality $N \cdot D \cdot p_A$ while adding no new neurons or lateral connections. Increasing $D$ is, however, ultimately limited by biological constraints on axonal conduction delays~\citep{Grimaldi2023a}.
 
-% ICANN
+% not in ICANN :
 %%%-----------------------------------------------------------------
 % \subsection{Retrieval of periodic spike patterns}
 %%%-----------------------------------------------------------------
@@ -322,86 +322,86 @@ The most immediate application of this framework is to neurophysiological data. 
 %%%----------------------------------------------------------------- 
 
 
-%%%-----------------------------------------------------------------
-\subsection{Representation of spiking activity}
-%%%-----------------------------------------------------------------
+% %%%-----------------------------------------------------------------
+% \subsection{Representation of spiking activity}
+% %%%-----------------------------------------------------------------
 
-In neurobiological recordings or the output of event-based cameras, any generic raster plot consists of a stream of \emph{spikes}, defined as a list of address--timestamp tuples to form an address-event representation (AER)~\citep{Grimaldi2024}. Formally, we define the event stream as
-\[
-  \mathcal{E}
-  = \bigl\{(a_r,\, t_r)\bigr\}_{r \in [1,\, N_\mathrm{ev}]},
-\]
-where $N_\mathrm{ev} \in \mathbb{N}$ is the total number of events and $r$ indexes each event in the natural temporal order~\citep{Grimaldi2024}. Each event has a time of occurrence $t_r$ and an address $a_r$ in the neural population space $\mathcal{A}$. In a Single Unit Activity (SUA) recording for instance, $\mathcal{A}$ is the identified set of neurons.
-
-Neurons are characterised by their membrane potential dynamics and by the integration of synaptic potentials along their dendritic tree. Crucially, neurons can receive inputs from multiple pre-synaptic neurons with \emph{heterogeneous delays} $\delta_s$, representing the travel time from the spike generation in the pre-synaptic neuron to its arrival at the soma of the post-synaptic neuron. Scanning all pre- and post-synaptic pairs, we define the set of $N_s \in \mathbb{N}$ synapses as
-\[
-  \mathcal{S}
-  = \bigl\{(a_s,\, b_s,\, w_s,\, \delta_s)\bigr\}_{s \in [1,\, N_s]},
-\]
-where $a_s \in \mathcal{A}$ and $b_s \in \mathcal{A}$ are respectively the pre- and post-synaptic addresses, $w_s$ is the synaptic weight, and $\delta_s$ is the delay. Note that neurons in the human cortex have on average 30000 synapses~\citep{Rockland2002}, an order of magnitude which is seldom reached in artificial networks. In our model, two neurons may contact each other via multiple synapses, each with a different delay. The \emph{receptive field} of neuron $b$ is the sub-set of synapses that project onto it:
-\[
-  \mathcal{S}^b
-  = \bigl\{(a_s,\, b_s,\, w_s,\, \delta_s) \mid b_s = b
-    \bigr\}_{s \in [1,\, N_s]}.
-\]
-Each spike from the event stream $\mathcal{E}$ gets multiplexed in time by these synapses to later converge on the post-synaptic neurons.
-%  into a new stream
+% In neurobiological recordings or the output of event-based cameras, any generic raster plot consists of a stream of \emph{spikes}, defined as a list of address--timestamp tuples to form an address-event representation (AER)~\citep{Grimaldi2024}. Formally, we define the event stream as
 % \[
-%   \bigcup_{r=1}^{N_\mathrm{ev}}
-%   \bigl\{(b_s,\; w_s,\; t_r + \delta_s)\bigr\}_{s \in \mathcal{S}_{a_r}},
+%   \mathcal{E}
+%   = \bigl\{(a_r,\, t_r)\bigr\}_{r \in [1,\, N_\mathrm{ev}]},
 % \]
-% which in biology is naturally ordered in time as spikes arrive at post-synaptic somas. 
-Crucially, as they reach  the post-synaptic neuron, a synchronous convergence of multiple spikes on the soma --- made possible by the interplay of heterogeneous delays --- increases the post-synaptic firing probability, enabling the detection of precise spiking motifs (see Figure~\ref{fig:izhikevich}).
+% where $N_\mathrm{ev} \in \mathbb{N}$ is the total number of events and $r$ indexes each event in the natural temporal order~\citep{Grimaldi2024}. Each event has a time of occurrence $t_r$ and an address $a_r$ in the neural population space $\mathcal{A}$. In a Single Unit Activity (SUA) recording for instance, $\mathcal{A}$ is the identified set of neurons.
 
-To allow for the simulation of this network on standard hardware we transform this event-based representation into the Boolean matrix $A \in \{0,1\}^{N \times T}$, where $N = |\mathcal{A}|$ is the number of neurons and $T$ is the number of discrete time steps of $1\,\mathrm{ms}$ each (see Figure~\ref{fig:model}, right panel). Delays are discretised as integers in $[1, D]$, so the synaptic set for all neurons is compactly represented by
-% The full connectivity is encoded in the 
-the weight tensor
-$\mathbf{W} \in \mathbb{R}^{N \times N \times D}$, with
-% which corresponds to
-% the kernel matrix $K^b$ of Section~\ref{sec:methods}.1 for every neuron
-% $b$ simultaneously.
-% the kernel matrix
-% $K \in \mathbb{R}^{N \times N \times D}$, with
-\[
-  \mathbf{W}_{b_s, a_s, \delta_s} = w_s
-  \quad \forall s \in [1,\, N_s],
-  \quad \text{and zero otherwise.}
-\]
+% Neurons are characterised by their membrane potential dynamics and by the integration of synaptic potentials along their dendritic tree. Crucially, neurons can receive inputs from multiple pre-synaptic neurons with \emph{heterogeneous delays} $\delta_s$, representing the travel time from the spike generation in the pre-synaptic neuron to its arrival at the soma of the post-synaptic neuron. Scanning all pre- and post-synaptic pairs, we define the set of $N_s \in \mathbb{N}$ synapses as
+% \[
+%   \mathcal{S}
+%   = \bigl\{(a_s,\, b_s,\, w_s,\, \delta_s)\bigr\}_{s \in [1,\, N_s]},
+% \]
+% where $a_s \in \mathcal{A}$ and $b_s \in \mathcal{A}$ are respectively the pre- and post-synaptic addresses, $w_s$ is the synaptic weight, and $\delta_s$ is the delay. Note that neurons in the human cortex have on average 30000 synapses~\citep{Rockland2002}, an order of magnitude which is seldom reached in artificial networks. In our model, two neurons may contact each other via multiple synapses, each with a different delay. The \emph{receptive field} of neuron $b$ is the sub-set of synapses that project onto it:
+% \[
+%   \mathcal{S}^b
+%   = \bigl\{(a_s,\, b_s,\, w_s,\, \delta_s) \mid b_s = b
+%     \bigr\}_{s \in [1,\, N_s]}.
+% \]
+% Each spike from the event stream $\mathcal{E}$ gets multiplexed in time by these synapses to later converge on the post-synaptic neurons.
+% %  into a new stream
+% % \[
+% %   \bigcup_{r=1}^{N_\mathrm{ev}}
+% %   \bigl\{(b_s,\; w_s,\; t_r + \delta_s)\bigr\}_{s \in \mathcal{S}_{a_r}},
+% % \]
+% % which in biology is naturally ordered in time as spikes arrive at post-synaptic somas. 
+% Crucially, as they reach  the post-synaptic neuron, a synchronous convergence of multiple spikes on the soma --- made possible by the interplay of heterogeneous delays --- increases the post-synaptic firing probability, enabling the detection of precise spiking motifs (see Figure~\ref{fig:izhikevich}).
+
+% To allow for the simulation of this network on standard hardware we transform this event-based representation into the Boolean matrix $A \in \{0,1\}^{N \times T}$, where $N = |\mathcal{A}|$ is the number of neurons and $T$ is the number of discrete time steps of $1\,\mathrm{ms}$ each (see Figure~\ref{fig:model}, right panel). Delays are discretised as integers in $[1, D]$, so the synaptic set for all neurons is compactly represented by
+% % The full connectivity is encoded in the 
+% the weight tensor
+% $\mathbf{W} \in \mathbb{R}^{N \times N \times D}$, with
+% % which corresponds to
+% % the kernel matrix $K^b$ of Section~\ref{sec:methods}.1 for every neuron
+% % $b$ simultaneously.
+% % the kernel matrix
+% % $K \in \mathbb{R}^{N \times N \times D}$, with
+% \[
+%   \mathbf{W}_{b_s, a_s, \delta_s} = w_s
+%   \quad \forall s \in [1,\, N_s],
+%   \quad \text{and zero otherwise.}
+% \]
 
 
-\section{Sub-threshold initialisation target, surrogate gradient sensitivity, and capacity}
-\label{app:margin}
+% \section{Sub-threshold initialisation target, surrogate gradient sensitivity, and capacity}
+% \label{app:margin}
 
-\subsection{Surrogate gradient sensitivity}
+% \subsection{Surrogate gradient sensitivity}
 
-The weight initialisation (Eq.~\ref{eq:init}) is designed so that a perfect context $\mathbf{c}(t) = \mathbf{c}^*(t)$ produces $u_j(t^*) = \vartheta_0 = 0.75$, strictly below the firing threshold $\vartheta = 1$. The safety margin $\delta = 0.25$ has two complementary justifications.
+% The weight initialisation (Eq.~\ref{eq:init}) is designed so that a perfect context $\mathbf{c}(t) = \mathbf{c}^*(t)$ produces $u_j(t^*) = \vartheta_0 = 0.75$, strictly below the firing threshold $\vartheta = 1$. The safety margin $\delta = 0.25$ has two complementary justifications.
 
-\paragraph{Surrogate gradient sensitivity.}
-With the fast-sigmoid surrogate $\sigma_\alpha(x) = 1/(1 + |\alpha x|)^2$ at sharpness $\alpha = 5$, the gradient at the initialised membrane value $u_j(t^*) - \vartheta = \vartheta_0 - \vartheta = -0.25$ is
-\[
-\sigma_{5}'(-0.25) = \frac{5}{(1 + 5 \times 0.25)^2} \approx 0.99,
-\]
-remaining of order unity. Had $\vartheta_0 \ll \vartheta$, the gradient would be near zero and the first training steps would carry no useful signal. The choice $\vartheta_0 = 0.75$ therefore places the initialised network in a high-sensitivity regime.
+% \paragraph{Surrogate gradient sensitivity.}
+% With the fast-sigmoid surrogate $\sigma_\alpha(x) = 1/(1 + |\alpha x|)^2$ at sharpness $\alpha = 5$, the gradient at the initialised membrane value $u_j(t^*) - \vartheta = \vartheta_0 - \vartheta = -0.25$ is
+% \[
+% \sigma_{5}'(-0.25) = \frac{5}{(1 + 5 \times 0.25)^2} \approx 0.99,
+% \]
+% remaining of order unity. Had $\vartheta_0 \ll \vartheta$, the gradient would be near zero and the first training steps would carry no useful signal. The choice $\vartheta_0 = 0.75$ therefore places the initialised network in a high-sensitivity regime.
 
-\paragraph{Protection against spurious spikes.}
-At inference time the network receives its own generated context $\hat{\mathbf{c}}(t)$. The resulting membrane perturbation has zero mean and standard deviation
-\[
-\sigma_u \approx \vartheta_0 \cdot \sqrt{\frac{p_A}{N \cdot D}} \approx 0.75 \times \sqrt{\frac{1.6\times10^{-4}}{1024 \times 41}} \approx 4.6 \times 10^{-5}.
-\]
-The probability of a spurious spike is $\Phi(-\delta/\sigma_u) = \Phi(-5{,}400) \approx 0$, so the margin $\delta = 0.25$ provides essentially complete protection against spurious firings from random context errors. Any value $\delta \gtrsim 0.01$ would suffice; the larger value $0.25$ is chosen to maximise the gradient sensitivity argument above.
+% \paragraph{Protection against spurious spikes.}
+% At inference time the network receives its own generated context $\hat{\mathbf{c}}(t)$. The resulting membrane perturbation has zero mean and standard deviation
+% \[
+% \sigma_u \approx \vartheta_0 \cdot \sqrt{\frac{p_A}{N \cdot D}} \approx 0.75 \times \sqrt{\frac{1.6\times10^{-4}}{1024 \times 41}} \approx 4.6 \times 10^{-5}.
+% \]
+% The probability of a spurious spike is $\Phi(-\delta/\sigma_u) = \Phi(-5{,}400) \approx 0$, so the margin $\delta = 0.25$ provides essentially complete protection against spurious firings from random context errors. Any value $\delta \gtrsim 0.01$ would suffice; the larger value $0.25$ is chosen to maximise the gradient sensitivity argument above.
 
-\subsection{Relationship to capacity}
+% \subsection{Relationship to capacity}
 
-The parameter-count capacity is
-\[
-M^* = \frac{N^2 \cdot D}{T - D} = \frac{1024^2 \times 41}{959} \approx 44{,}830 \text{ patterns.}
-\]
-A secondary, interference-limited capacity arises from the condition $\delta > \sigma_u \cdot \sqrt{M}$, giving
-\begin{equation}
-M^*_\delta = \frac{\delta^2 \cdot N \cdot D}{\vartheta_0^2 \cdot p_A} = \frac{(0.2)^2 \times 1024 \times 41}{(0.8)^2 \times 1.6\times10^{-4}} \approx 16{,}400{,}000.
-\label{eq:M_cap_delta}
-\end{equation}
-Since $M^*_\delta \gg M^*$, the binding constraint is always the parameter count, not interference. The margin $\delta$ does not limit capacity; it governs only the quality of the gradient signal at initialisation.
+% The parameter-count capacity is
+% \[
+% M^* = \frac{N^2 \cdot D}{T - D} = \frac{1024^2 \times 41}{959} \approx 44{,}830 \text{ patterns.}
+% \]
+% A secondary, interference-limited capacity arises from the condition $\delta > \sigma_u \cdot \sqrt{M}$, giving
+% \begin{equation}
+% M^*_\delta = \frac{\delta^2 \cdot N \cdot D}{\vartheta_0^2 \cdot p_A} = \frac{(0.2)^2 \times 1024 \times 41}{(0.8)^2 \times 1.6\times10^{-4}} \approx 16{,}400{,}000.
+% \label{eq:M_cap_delta}
+% \end{equation}
+% Since $M^*_\delta \gg M^*$, the binding constraint is always the parameter count, not interference. The margin $\delta$ does not limit capacity; it governs only the quality of the gradient signal at initialisation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%% Endyet daag koepf dokumentet %%%%%%%%%%%%%%%

@@ -5,7 +5,7 @@
    :target: https://www.python.org/downloads/
 .. image:: https://img.shields.io/badge/License-GPL--3.0-green.svg
    :target: https://github.com/laurentperrinet/MNESIS/blob/main/LICENSE
-.. image:: https://img.shields.io/badge/Paper-AIROV%202026-orange.svg
+.. image:: https://img.shields.io/badge/Paper-ICANN%202026-orange.svg
    :target: https://laurentperrinet.github.io/publication/perrinet-26-icann/
 ```
 
@@ -33,7 +33,7 @@ Digits). The experiments build on one another: each numbered notebook imports th
 shared infrastructure and loads the cached artifacts produced by the previous one.
 
 **Paper:** Laurent U. Perrinet (2026). *Working Memory in a Recurrent Spiking Neural
-Network with Heterogeneous Synaptic Delays*. AIROV 2026.
+Network with Heterogeneous Synaptic Delays*. ICANN 2026.
 [`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
 
 ## Model
@@ -106,7 +106,7 @@ exact value a given figure used.
   author        = {Perrinet, Laurent U.},
   title         = {Working Memory in a Recurrent Spiking Neural Network
                   with Heterogeneous Synaptic Delays},
-  booktitle     = {AIROV 2026},
+  booktitle     = {ICANN 2026},
   year          = {2026},
   url           = {https://laurentperrinet.github.io/publication/perrinet-26-icann/}
 }

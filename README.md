@@ -2,7 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green.svg)](LICENSE)
-[![Paper](https://img.shields.io/badge/Paper-AIROV%202026-orange.svg)](tex/Perrinet26mnesis.pdf)
+[![Paper](https://img.shields.io/badge/Paper-ICANN%202026-orange.svg)](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
 
 > **MNESIS** — *a Memory Network where Every Spike Is Sacred*
 
@@ -16,7 +16,7 @@ Working memory in biological neural circuits relies on precise spike timing rath
 
 The same `HD_SNN` framework is applied across a growing zoo of pattern families: sparse synthetic motifs, periodic motifs, structured travelling waves, chaotic (Lorenz) trajectories, a tokenised text corpus, and real spiking data (Spiking Heidelberg Digits). The experiments below build on one another: each numbered notebook imports the shared infrastructure and loads the cached artifacts produced by the previous one.
 
-**Paper:** Laurent U. Perrinet (2026). *Working Memory in a Recurrent Spiking Neural Network with Heterogeneous Synaptic Delays*. AIROV 2026.
+**Paper:** Laurent U. Perrinet (2026). *Working Memory in a Recurrent Spiking Neural Network with Heterogeneous Synaptic Delays*. ICANN 2026.
 [`tex/Perrinet26mnesis.pdf`](tex/Perrinet26mnesis.pdf) · [`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
 
 ---
@@ -206,11 +206,11 @@ initialisation in `HD_SNN.get_W_init()`:
 | Delay scan (NB 20) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
 | Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
 | Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
-| Periodic memory (NB 30) | Stable periodic retrieval with dedicated robustness evaluation under progressive bit-flip noise |
+| Periodic memory (NB 18) | Stable periodic retrieval with dedicated robustness evaluation under progressive bit-flip noise |
 | Travelling waves (NB 32) | MotionClouds-derived structured motifs can be stored/recalled with the same HD-SNN framework |
 | Lorenz attractor (NB 34) | Extends retrieval tests to non-periodic chaotic trajectories encoded as spike events |
 | Text (NB 36) | A tokenised text corpus is encoded as a frequency-ordered spike codebook, learned and recalled by `HD_SNN`, then decoded back to text |
-| SHD integration (NB 40) | Adds real-event dataset loading and preprocessing for external benchmark experiments |
+| SHD integration (NB 38) | Adds real-event dataset loading and preprocessing for external benchmark experiments |
 | Full orchestrator (NB 99) | Provides a single notebook entry point for sequential multi-notebook execution |
 
 ---
@@ -222,18 +222,11 @@ initialisation in `HD_SNN.get_W_init()`:
   author       = {Perrinet, Laurent U.},
   title        = {Working Memory in a Recurrent Spiking Neural Network
                 with Heterogeneous Synaptic Delays},
-  booktitle    = {AIROV 2026},
+  booktitle    = {ICANN 2026},
   year         = {2026},
   url          = {https://laurentperrinet.github.io/publication/perrinet-26-icann/}
 }
 ```
-
----
-
-## TODO list
-
-- [ ] https://laurentperrinet.github.io/MNESIS/ : Build docs from the code ipynb and  (and tex?) / publish to GitHub Pages
-
 
 ---
 
