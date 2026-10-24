@@ -87,9 +87,9 @@ exact value a given figure used.
 |---|---|
 | Training (NB 11) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
 | Sequential retrieval (NB 13) | All 16 patterns retrieved without cross-interference |
-| Noise robustness (NB 14) | $F_1 = 0.967$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
-| Trigger duration (NB 15) | $F_1 = 0.862$ at 75% of $D$; reliable above $D/2$ |
-| Neuron coverage (NB 16) | $F_1 = 1.0$ with 87.5% of neurons active in trigger |
+| Noise robustness (NB 14) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
+| Trigger duration (NB 15) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
+| Neuron coverage (NB 16) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
 | Delay scan (NB 20) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
 | Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
 | Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |

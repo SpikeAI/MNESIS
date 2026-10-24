@@ -10,7 +10,7 @@ methods, and a :func:`load` helper for trained checkpoints.
 
 from mnesis_boilerplate import torch, np, nn, OrderedDict, surrogate, snn, snn_utils
 from mnesis_boilerplate import get_scores, get_cosine_schedule_with_warmup, SpikeF1scoreLoss
-from mnesis_boilerplate import DEBUG, phi, figpath, printfig, flip_bits, Params
+from mnesis_boilerplate import flip_bits, Params
 
 
 class SpikingPattern:

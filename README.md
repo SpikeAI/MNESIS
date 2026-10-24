@@ -87,9 +87,9 @@ run for the pattern family being studied.
 | 10 | `10_MNESIS_generative-model.ipynb` | Implements the generative model for synthetic sparse patterns: draws Gaussian logit maps $\ell \sim \mathcal{N}(0, E_\mathrm{SM})$, thresholds to keep the top $p_\mathrm{SM}$ fraction, convolves with the biphasic spike shape, and samples Bernoulli spike trains at rate $p_A$. Visualises the resulting patterns. |
 | 11 | `11_MNESIS_learn-synthetic.ipynb` | Trains the network on $M = 16$ synthetic sparse patterns. Demonstrates that the analytical init alone reaches high $F_1$; gradient training with a cosine schedule then improves noise robustness. |
 | 13 | `13_MNESIS_testing-inference.ipynb` | Concatenates all $M = 16$ patterns in sequence with $N_\mathrm{pretime} = 50$ steps of spontaneous inter-trial activity; evaluates sliding-window $F_1$ to confirm selective, cross-interference-free retrieval. |
-| 14 | `14_MNESIS_testing-noise.ipynb` | Bit-flip noise on the trigger window ($p_\mathrm{flip} \in [0, 1]$). Quantifies attractor-like robustness; $F_1 = 0.967$ at $p_\mathrm{flip} = 0.25$. |
-| 15 | `15_MNESIS_testing-trigger-duration.ipynb` | Truncated trigger window (0 to $D-1$ steps). Finds the minimum cue length for reliable recall; $F_1 = 0.862$ at 75% of $D$. |
-| 16 | `16_MNESIS_testing-trigger-fraction.ipynb` | Partial neuron coverage (0 to $N$ neurons silenced in trigger). Perfect recall maintained with 87.5% of neurons active. |
+| 14 | `14_MNESIS_testing-noise.ipynb` | Bit-flip noise on the trigger window ($p_\mathrm{flip} \in [0, 1]$). Quantifies attractor-like robustness; $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$. |
+| 15 | `15_MNESIS_testing-trigger-duration.ipynb` | Truncated trigger window (0 to $D-1$ steps). Finds the minimum cue length for reliable recall; $F_1 \approx 0.42$ at 75% of $D$. |
+| 16 | `16_MNESIS_testing-trigger-fraction.ipynb` | Partial neuron coverage (0 to $N$ neurons silenced in trigger). $F_1 \approx 0.60$ with 87.5% of neurons active. |
 | 18 | `18_MNESIS_learn-periodic.ipynb` | Builds periodic targets, trains periodic memories, and evaluates retrieval robustness under increasing input noise. |
 | 20 | `20_MNESIS_scanning-parameters.ipynb` | Systematic one-at-a-time scans over $D$, $T$, $p_A$, $N$, $E_\mathrm{SM}$, $p_\mathrm{SM}$, and the new `do_pinv` / `do_deconv` flags, with $N_\mathrm{cv} = 10$ seeds. Produces the parameter-scan figures of the paper. |
 | 25 | `25_MNESIS_optuna.ipynb` | Automated hyperparameter search with [Optuna](https://optuna.org/) over learning dynamics, thresholds, and regularisation. |
@@ -226,9 +226,9 @@ initialisation in `HD_SNN.get_W_init()`:
 |---|---|
 | Training (NB 11) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
 | Sequential retrieval (NB 13) | All 16 patterns retrieved without cross-interference |
-| Noise robustness (NB 14) | $F_1 = 0.967$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
-| Trigger duration (NB 15) | $F_1 = 0.862$ at 75% of $D$; reliable above $D/2$ |
-| Neuron coverage (NB 16) | $F_1 = 1.0$ with 87.5% of neurons active in trigger |
+| Noise robustness (NB 14) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
+| Trigger duration (NB 15) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
+| Neuron coverage (NB 16) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
 | Delay scan (NB 20) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
 | Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
 | Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |

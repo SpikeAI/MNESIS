@@ -182,7 +182,7 @@ Each experiment notebook carries markdown documentation in a standard shape
 - One **`##` header per experimental stage** (`## Parameters`,
   `## Analytic initialisation of the readout`, `## Supervised learning of the
   readout`, `## Sweep: ...`), with `###` for raster legends, evaluation cells
-  and animations. Match the heading style already used in 30/40-series
+  and animations. Match the heading style already used in 18/20-series
   notebooks (`## working memory with periodic targets`).
 - Inline `#` code comments may be added, but **commenting must never change
   executable code** (verify by stripping comments and diffing against HEAD).

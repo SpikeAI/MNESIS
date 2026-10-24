@@ -11,7 +11,7 @@ metrics (:func:`get_scores`, :func:`get_f1score`,
 """
 
 from pathlib import Path
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict
 import os
 import json
 import torch
@@ -22,7 +22,7 @@ import snntorch as snn
 import snntorch.surrogate as surrogate
 from snntorch import utils as snn_utils
 import snntorch.spikeplot as splt
-from tqdm import tqdm, trange
+from tqdm import trange
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import SubplotParams
