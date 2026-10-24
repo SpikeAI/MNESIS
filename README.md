@@ -120,13 +120,17 @@ Delete a cached `.pth`, `.json`, `.npz`, or `.sqlite3` file to force recomputati
 
 ### Build and publish the documentation
 
+The site is built and deployed by the GitHub Actions workflow
+`.github/workflows/static.yml` on every push to `main`; no generated HTML is
+committed (`docs/` only holds the sources). To preview it locally:
+
 ```bash
-pip install -r docs/requirements.txt && make -C docs html   # then: git add docs && git commit && git push
+pip install -r docs/requirements.txt && make -C docs html   # output in docs/_build/html
 ```
 
-This builds the Sphinx/furo site in place inside `docs/` (symlinking the
-`src/` notebooks into `docs/notebooks/` and rendering them with their stored
-outputs); GitHub Pages is configured to serve that folder from `main` at
+The build symlinks the `src/` notebooks into `docs/notebooks/` and renders them
+with their stored outputs. The Pages source must be set to "GitHub Actions"
+(repository Settings > Pages); the site is served at
 [https://laurentperrinet.github.io/MNESIS/](https://laurentperrinet.github.io/MNESIS/).
 
 ---

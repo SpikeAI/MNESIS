@@ -1,7 +1,7 @@
 # Build the Sphinx documentation in docs/ and deploy it to GitHub Pages.
 # The Pages source is set (in repository Settings > Pages) to "GitHub Actions";
 # this workflow regenerates the site from docs/ + src/ notebooks on every push
-# to main, so the HTML committed under docs/ is only a convenience fallback.
+# to main, so no generated HTML is committed (docs/ holds sources only).
 name: Deploy docs to Pages
 
 on:
@@ -52,7 +52,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs'
+          path: 'docs/_build/html'
 
   # Single deploy job since we're just deploying
   deploy:

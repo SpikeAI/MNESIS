@@ -1,13 +1,13 @@
 # Makefile for the MNESIS documentation.
 #
-# The site is built *in place* inside docs/ so that GitHub Pages can be
-# configured to serve the /docs folder of the main branch:
+# The site is built into docs/_build/html (git-ignored); only the sources
+# (conf.py, *.md, requirements.txt, this Makefile) are versioned. The GitHub
+# Actions workflow .github/workflows/static.yml runs `make -C docs html` and
+# deploys docs/_build/html to GitHub Pages on every push to main.
 #
 #   pip install -r docs/requirements.txt
-#   make -C docs html        # symlink notebooks + build the site here
-#   git add docs && git commit && git push   # publishes to GitHub Pages
-#
-# Doctree caches go to docs/_build/ (git-ignored).
+#   make -C docs html        # symlink notebooks + build the site
+#   open docs/_build/html/index.html
 
 SPHINXBUILD ?= sphinx-build
 SPHINXOPTS  ?=
@@ -20,7 +20,7 @@ NOTEBOOKS := $(notdir $(wildcard ../src/*.ipynb))
 help:
 	@echo "Available targets:"
 	@echo "  notebooks  (re)create symlinks to ../src/*.ipynb into notebooks/"
-	@echo "  html       build the HTML site in place (docs/) from the notebooks"
+	@echo "  html       build the HTML site in $(BUILDDIR)/html"
 	@echo "  clean      remove generated artifacts (keeps conf.py, Makefile, *.md)"
 	@echo "  all        notebooks + html (default)"
 
@@ -30,23 +30,12 @@ notebooks:
 	@for nb in $(NOTEBOOKS); do \
 		ln -sf ../../src/$$nb notebooks/$$nb ; \
 	done
-	@printf '*\n!.gitignore\n!*.html\n' > notebooks/.gitignore
 
 html: notebooks
 	$(SPHINXBUILD) -b html $(SPHINXOPTS) -d $(BUILDDIR)/doctrees . $(BUILDDIR)/html
-	@# publish the generated site in place (docs/), protected sources excluded
-	rsync -a --delete --exclude='/_build/' --exclude='/conf.py' \
-		--exclude='/Makefile' --exclude='/requirements.txt' --exclude='/*.md' \
-		--exclude='/notebooks/' --exclude='/.gitignore' --exclude='/*.log' \
-		$(BUILDDIR)/html/ ./
-	rsync -a --delete --exclude='*.ipynb' --exclude='.gitignore' \
-		$(BUILDDIR)/html/notebooks/ notebooks/
-	@echo "Site ready in docs/ - publish with: git add docs && git commit && git push"
+	@echo "Site ready in $(BUILDDIR)/html"
 
 clean:
-	rm -rf $(BUILDDIR) _static _sources notebooks
-	rm -f index.html installation.html api.html experiments.html \
-		.genindex genindex.html search.html objects.inv .buildinfo \
-		searchindex.js mods.json py-modindex.html
+	rm -rf $(BUILDDIR) notebooks
 
 all: html
