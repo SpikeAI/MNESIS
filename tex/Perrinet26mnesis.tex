@@ -169,8 +169,8 @@ Each weight $w_{i, j, d}$ is proportional to the cross-correlation between the d
 
 % TODO is it by definition low-rank ?
 
- We will set the threshold at $\vartheta = 0.75$ at each target spike time $t$, reserving a safety margin $\delta = 1 - \vartheta = 0.25$. This margin prevents spurious firings from partial contexts and, crucially, places the membrane in the regime where the surrogate gradient is near its maximum, making the first gradient step maximally informative (see Appendix~\ref{app:margin} for the full derivation and its relationship to capacity)
-  The $\vartheta_0$ factor ensures that a perfect context produces $u_j(t^*) = \vartheta_0$, leaving a margin $\delta = 0.25$ below the threshold. This mirrors spike-timing-dependent plasticity (STDP)~\citep{Izhikevich2006} and classical Hebbian learning~\citep{Perrinet2002}, with the additional $-\beta$ correction accounting for the membrane leak (full analysis in Appendix~\ref{app:margin}). At inference time the network receives its own generated context rather than the ground truth, so errors can accumulate over time --- the primary source of difficulty analysed in Section~\ref{sec:results}.
+ We will set the threshold at $\vartheta = 0.75$ at each target spike time $t$, reserving a safety margin $\delta = 1 - \vartheta = 0.25$. This margin prevents spurious firings from partial contexts and, crucially, places the membrane in the regime where the surrogate gradient is near its maximum, making the first gradient step maximally informative.
+  The $\vartheta_0$ factor ensures that a perfect context produces $u_j(t^*) = \vartheta_0$, leaving a margin $\delta = 0.25$ below the threshold. This mirrors spike-timing-dependent plasticity (STDP)~\citep{Izhikevich2006} and classical Hebbian learning~\citep{Perrinet2002}, with the additional $-\beta$ correction accounting for the membrane leak. At inference time the network receives its own generated context rather than the ground truth, so errors can accumulate over time --- the primary source of difficulty analysed in Section~\ref{sec:results}.
 %%%-----------------------------------------------------------------
 \subsection{Training}
 %%%-----------------------------------------------------------------
@@ -248,11 +248,11 @@ We varied the number of neurons whose activity was silenced during the trigger w
 %%%-----------------------------------------------------------------
 %
 %%%-----------------------------------------------------------------
-\subsection{Effect of delay depth, pattern duration, and background firing rate}
+\subsection{Effect of delay depth, pattern duration, and network size}
 %%%-----------------------------------------------------------------
 %  20_MNESIS_scanning-parameters.ipynb
 
-To characterise how the architectural parameters govern working-memory performance, we conducted a systematic one-at-a-time scan over the maximum delay $D$, the pattern duration $T$, and the background firing rate $p_A$, holding all other hyperparameters at their default values (Section~\ref{sec:methods}). Each condition was evaluated with $N_\mathrm{cv} = 10$ independent random seeds and results are reported as mean loss $\mathcal{L} = 1 - F_1$ (Figure~\ref{fig:scan}).
+To characterise how the architectural parameters govern working-memory performance, we conducted a systematic one-at-a-time scan over the maximum delay $D$, the pattern duration $T$, and the number of neurons $N$, holding all other hyperparameters at their default values (Section~\ref{sec:methods}). Each condition was evaluated with $N_\mathrm{cv} = 10$ independent random seeds and results are reported as mean loss $\mathcal{L} = 1 - F_1$ (Figure~\ref{fig:scan}).
 
 \paragraph{Delay depth $D$ (Figure~\ref{fig:scan}, left).}
 The loss decreases monotonically as $D$ grows from $3$ to $127\,\mathrm{ms}$, dropping from $\mathcal{L} \approx 0.85$ at $D = 3$ to near zero at $D = 127$. This confirms the capacity argument: the parameter budget $N^2 \cdot D$ and the context-window size $N \cdot D$ both scale linearly with $D$. A wider delay window provides more temporally diverse synaptic pathways, increasing the number of simultaneously representable Spiking Motifs and reducing interference between overlapping context windows. At $D = 3$ the context vector has only $N \cdot D = 3072$ dimensions with expected activity $N \cdot D \cdot p_A \approx 3.07$ --- a regime where contexts are nearly all-zero and indistinguishable. At $D = 127$ the context has $N \cdot D = 129{,}024$ dimensions with expected activity $\approx 129$, and near-orthogonality is strongly satisfied.
@@ -263,10 +263,13 @@ The loss decreases monotonically as $D$ grows from $3$ to $127\,\mathrm{ms}$, dr
 \paragraph{Pattern duration $T$ (Figure~\ref{fig:scan}, middle).}
 The loss grows monotonically with $T$, from $\mathcal{L} \approx 0.004$ at $T = 64$ to $\mathcal{L} \approx 0.08$ at $T = 2048$. This is the empirical signature of the two compounding difficulties identified in the capacity analysis: longer sequences impose a larger open-loop rollout, and the error propagation recurrence accumulates over $T - D$ steps. Even a sub-critical propagation coefficient $\lambda < 1/D$ eventually allows errors to reach a non-negligible fraction of $N$ spikes.
 
+\paragraph{Network size $N$ (Figure~\ref{fig:scan}, right).}
+The loss remains close to its maximum ($\mathcal{L} \approx 1$) for populations below about $400$ neurons, then drops steeply between $N \approx 500$ and $N \approx 1000$, and stays low ($\mathcal{L} \lesssim 0.1$) from $N \approx 1000$ onwards. This threshold behaviour follows from the orthogonality argument: at fixed $D = 41$ and $p_A = 1.6 \times 10^{-4}$, the expected number of active entries in a context window, $N \cdot D \cdot p_A$, falls from $\approx 6.7$ at $N = 1024$ to $\approx 2.6$ at $N = 400$, too few for successive contexts to be reliably distinguished.
+
 % \paragraph{Background firing rate $p_A$ (Figure~\ref{fig:scan}, right).}
 % The loss exhibits a clear optimum around $p_A = 10^{-4}$ to $10^{-3}$ and degrades rapidly for $p_A \geq 2 \times 10^{-3}$. Increasing $p_A$ linearly reduces the SNR of the cross-correlation initialisation and increases the Gram-matrix off-diagonal terms, degrading context orthogonality.
 
-Taken together, the  scans quantitatively validate the theoretical framework: delay depth is the primary capacity lever (loss $\propto 1/(N \cdot D \cdot p_A)$), pattern duration is the primary difficulty lever, and firing rate sets the orthogonality regime that determines whether initialisation and learning converge. These results suggest that the most efficient path to storing longer patterns is to increase $D$ rather than $N$, since $D$ enters both the parameter capacity $N^2 \cdot D$ and the context orthogonality $N \cdot D \cdot p_A$ while adding no new neurons or lateral connections. Increasing $D$ is, however, ultimately limited by biological constraints on axonal conduction delays~\citep{Grimaldi2023a}.
+Taken together, the  scans quantitatively validate the theoretical framework: delay depth is the primary capacity lever (loss $\propto 1/(N \cdot D \cdot p_A)$), pattern duration is the primary difficulty lever, and the population must exceed a minimal size for contexts to be orthogonal enough for initialisation and learning to converge. These results suggest that the most efficient path to storing longer patterns is to increase $D$ rather than $N$, since $D$ enters both the parameter capacity $N^2 \cdot D$ and the context orthogonality $N \cdot D \cdot p_A$ while adding no new neurons or lateral connections. Increasing $D$ is, however, ultimately limited by biological constraints on axonal conduction delays~\citep{Grimaldi2023a}.
 
 % not in ICANN :
 %%%-----------------------------------------------------------------
@@ -291,7 +294,7 @@ We have demonstrated that a recurrent SNN with heterogeneous synaptic delays can
 
 % TODO make an analogy with mamba
 
-The robustness experiments further strengthen this interpretation. The network tolerates up to 25\% bit-flip noise in the trigger window, requires only $75\%$ of the full trigger duration for reliable recall, and maintains perfect retrieval with up to $87.5\%$ of trigger neurons silenced. This progressive degradation profile is consistent with the network operating as an attractor: the stored patterns correspond to stable fixed points of the recurrent dynamics, and the trigger window provides a partial cue that the network completes autonomously --- the same mechanism proposed for hippocampal pattern completion~\citep{Villette2015}.
+The robustness experiments further strengthen this interpretation. Retrieval remains well above chance with $25\%$ bit-flip noise in the trigger window ($F_1 \approx 0.63$), becomes reliable once the trigger exceeds roughly $32$ of its $D = 41$ steps, and still reaches $F_1 \approx 0.60$ when $128$ of the $N = 1024$ trigger neurons ($12.5\%$) are silenced. This progressive degradation profile is consistent with the network operating as an attractor: the stored patterns correspond to stable fixed points of the recurrent dynamics, and the trigger window provides a partial cue that the network completes autonomously --- the same mechanism proposed for hippocampal pattern completion~\citep{Villette2015}.
 
 \subsection{Limitations and directions for improvement}
 %%%-----------------------------------------------------------------
@@ -323,8 +326,8 @@ The most immediate application of this framework is to neurophysiological data. 
 \section*{Statement on the use/non-use of Generative Artificial Intelligence}
 \noindent \AIstatement
 %%%----------------------------------------------------------------- 
-% ICANN suppression
-\appendix
+% ICANN suppression: no appendix in this version
+% \appendix
 %%%----------------------------------------------------------------- 
 
 
