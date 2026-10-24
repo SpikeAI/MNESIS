@@ -14,7 +14,7 @@ This repository contains the full implementation, experiments, and paper source 
 
 Working memory in biological neural circuits relies on precise spike timing rather than sustained firing rates. MNESIS models this by equipping every synapse with $D$ learnable delays, parameterised as a single weight tensor $\mathbf{W} \in \mathbb{R}^{N \times N \times D}$. Each stored pattern is encoded as a chain of overlapping **Spiking Motifs**: contiguous context windows of length $D$ that uniquely predict the next time step of activity. A closed-form initialisation derived by deconvolving the LIF membrane response reaches near-perfect recall before any gradient step, while surrogate-gradient BPTT then adds robustness to noise.
 
-The same `HD_SNN` framework is applied across a growing zoo of pattern families: sparse synthetic motifs, periodic motifs, structured travelling waves, chaotic (Lorenz) trajectories, a tokenised text corpus, and real spiking data (Spiking Heidelberg Digits). The experiments below build on one another: each numbered notebook imports the shared infrastructure and loads the cached artifacts produced by the previous one.
+The same `HD_SNN` framework is applied to sparse synthetic motifs and to periodic motifs. The experiments below build on one another: each numbered notebook imports the shared infrastructure and loads the cached artifacts produced by the previous one.
 
 **Paper:** Laurent U. Perrinet (2026). *Working Memory in a Recurrent Spiking Neural Network with Heterogeneous Synaptic Delays*. ICANN 2026.
 [`tex/Perrinet26mnesis.pdf`](tex/Perrinet26mnesis.pdf) · [`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
@@ -38,10 +38,6 @@ MNESIS/
 │        ├── 18_MNESIS_learn-periodic.ipynb    # Learning and retrieval of periodic memories
 │        ├── 20_MNESIS_scanning-parameters.ipynb # Parameter scans (D, T, p_A, ...)
 │        ├── 25_MNESIS_optuna.ipynb            # Hyperparameter optimisation (Optuna)
-│        ├── 32_MNESIS_learn-travelling-waves.ipynb # Structured spatiotemporal travelling waves
-│        ├── 34_MNESIS_learn-Lorenz-attractor.ipynb # Chaotic trajectory encoding and recall
-│        ├── 36_MNESIS_learn-text.ipynb        # Token-text corpus → spike codebook → recall
-│        ├── 38_MNESIS_learn-SHD.ipynb         # Spiking Heidelberg Digits experiments
 │        ├── 99_MNESIS_run-all.ipynb           # End-to-end notebook orchestrator
 │        └── requirements.txt                  # Python dependencies for notebook runs
 ├── figures/                       # Generated figures (PDF/PNG)
@@ -64,7 +60,7 @@ MNESIS/
 pip install -r src/requirements.txt
 ```
 
-Core dependencies: `torch`, `snntorch`, `numpy`, `scipy`, `matplotlib`, `jupyter`. The text experiment additionally uses the `datasets` and `tiktoken` packages, and the optimisation/scan notebooks use `optuna` (all bundled in `requirements.txt`).
+Core dependencies: `torch`, `snntorch`, `numpy`, `scipy`, `matplotlib`, `jupyter`. The optimisation/scan notebooks additionally use `optuna` (bundled in `requirements.txt`).
 
 ### Run the notebooks in order
 
@@ -93,10 +89,6 @@ run for the pattern family being studied.
 | 18 | `18_MNESIS_learn-periodic.ipynb` | Builds periodic targets, trains periodic memories, and evaluates retrieval robustness under increasing input noise. |
 | 20 | `20_MNESIS_scanning-parameters.ipynb` | Systematic one-at-a-time scans over $D$, $T$, $p_A$, $N$, $E_\mathrm{SM}$, $p_\mathrm{SM}$, and the new `do_pinv` / `do_deconv` flags, with $N_\mathrm{cv} = 10$ seeds. Produces the parameter-scan figures of the paper. |
 | 25 | `25_MNESIS_optuna.ipynb` | Automated hyperparameter search with [Optuna](https://optuna.org/) over learning dynamics, thresholds, and regularisation. |
-| 32 | `32_MNESIS_learn-travelling-waves.ipynb` | Introduces MotionClouds-based travelling-wave patterns and benchmarks retrieval with structured spatiotemporal motifs. |
-| 34 | `34_MNESIS_learn-Lorenz-attractor.ipynb` | Encodes Lorenz chaotic trajectories into spike codes and evaluates memory recall on non-periodic continuous dynamics. |
-| 36 | `36_MNESIS_learn-text.ipynb` | Tokenises a Wikipedia corpus (`tiktoken`, `cl100k_base`) into token IDs, builds a frequency-ordered **spike codebook** (most-frequent tokens get the sparsest neuron rows, minimising the Hamming distance), wraps it in a `TextSpikingPattern` generator, learns and recalls the resulting spike patterns, then decodes the output spikes back to text via the inverse codebook + tokenizer. Includes Optuna tuning and parameter scans. |
-| 38 | `38_MNESIS_learn-SHD.ipynb` | Integrates Spiking Heidelberg Digits data loading/preprocessing for dataset-grounded experiments. |
 | 99 | `99_MNESIS_run-all.ipynb` | Scripted orchestrator to run the full notebook pipeline with progress timestamps. |
 
 ### Cached data
@@ -109,12 +101,7 @@ Results are saved to `cached_data/` (excluded from git via `.gitignore`):
 | `*.pth` | Trained model weights after gradient steps |
 | `*_scan_*.json` | Parameter sweep results (loss, precision, recall per condition) |
 | `*_periodic-with-noise.npz` | Periodic-memory robustness curves across noise levels and time chunks |
-| `*_TW_*.json` | Travelling-wave parameter scans |
-| `*_lorenz_chaotic_*.json` | Lorenz-attractor scan and optimisation outputs |
-| `wikipedia_dataset.parquet` | Downloaded Wikipedia corpus (text experiment) |
-| `*_wikipedia_fr_token_ids.npy` | Token-ID array of the tokenised corpus |
-| `*_codebook.pt` | Frequency-ordered token→neuron spike codebook |
-| `*_optuna.sqlite3` | Optuna studies (synthetic, travelling-wave, Lorenz, text) |
+| `*_optuna.sqlite3` | Optuna studies (synthetic motifs) |
 
 Delete a cached `.pth`, `.json`, `.npz`, or `.sqlite3` file to force recomputation; set `RECOMPUTE = True` at the top of any notebook to invalidate the full cache for that notebook. The scan/optimisation notebooks additionally guard each run with a `.lock` sentinel file to allow safe incremental resumption.
 
@@ -145,7 +132,7 @@ $$u_j(t) = \beta \cdot u_j(t-1) \cdot (1 - s_j(t-1)) + \sum_{i=1}^{N} \sum_{d=1}
 
 The global `Params` defaults in the current `datetag` use $\beta = 0.7$ and threshold
 $\vartheta = 0.75$; individual experiments override these in their local `opt_dict`
-(e.g. the text and travelling-wave runs use other $\beta$ / $\vartheta$ pairs). `Params`
+(e.g. a different $\beta$ / $\vartheta$ pair). `Params`
 is the single source of hyperparameter truth; see the "Parameter drift" note below for
 why the prose, the paper, and the code need not always agree.
 
@@ -233,10 +220,6 @@ initialisation in `HD_SNN.get_W_init()`:
 | Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
 | Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
 | Periodic memory (NB 18) | Stable periodic retrieval with dedicated robustness evaluation under progressive bit-flip noise |
-| Travelling waves (NB 32) | MotionClouds-derived structured motifs can be stored/recalled with the same HD-SNN framework |
-| Lorenz attractor (NB 34) | Extends retrieval tests to non-periodic chaotic trajectories encoded as spike events |
-| Text (NB 36) | A tokenised text corpus is encoded as a frequency-ordered spike codebook, learned and recalled by `HD_SNN`, then decoded back to text |
-| SHD integration (NB 38) | Adds real-event dataset loading and preprocessing for external benchmark experiments |
 | Full orchestrator (NB 99) | Provides a single notebook entry point for sequential multi-notebook execution |
 
 ---

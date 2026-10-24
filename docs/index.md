@@ -26,10 +26,8 @@ A closed-form initialisation derived by deconvolving the LIF membrane response r
 near-perfect recall before any gradient step, while surrogate-gradient BPTT then adds
 robustness to noise.
 
-The same `HD_SNN` framework is applied across a growing zoo of pattern families: sparse
-synthetic motifs, periodic motifs, structured travelling waves, chaotic (Lorenz)
-trajectories, a tokenised text corpus, and real spiking data (Spiking Heidelberg
-Digits). The experiments build on one another: each numbered notebook imports the
+The same `HD_SNN` framework is applied to sparse synthetic motifs and to periodic
+motifs. The experiments build on one another: each numbered notebook imports the
 shared infrastructure and loads the cached artifacts produced by the previous one.
 
 **Paper:** Laurent U. Perrinet (2026). *Working Memory in a Recurrent Spiking Neural
@@ -94,10 +92,6 @@ exact value a given figure used.
 | Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
 | Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
 | Periodic memory (NB 30) | Stable periodic retrieval under progressive bit-flip noise |
-| Travelling waves (NB 32) | MotionClouds-derived structured motifs stored/recalled with the same framework |
-| Lorenz attractor (NB 34) | Retrieval extended to non-periodic chaotic trajectories |
-| Text (NB 36) | Tokenised corpus encoded as a frequency-ordered spike codebook, learned, recalled and decoded back to text |
-| SHD integration (NB 40) | Real-event dataset loading for external benchmark experiments |
 
 ## Citation
 

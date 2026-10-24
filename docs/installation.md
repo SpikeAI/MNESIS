@@ -9,8 +9,8 @@ pip install -r src/requirements.txt
 ```
 
 Core dependencies: `torch`, `snntorch`, `numpy`, `scipy`, `matplotlib`, `jupyter`.
-The text experiment additionally uses the `datasets` and `tiktoken` packages, and the
-optimisation/scan notebooks use `optuna` (all bundled in `src/requirements.txt`).
+The optimisation/scan notebooks additionally use `optuna` (bundled in
+`src/requirements.txt`).
 
 ## Run the notebooks in order
 
@@ -51,12 +51,7 @@ Results are saved to `cached_data/` (excluded from git via `.gitignore`):
 | `*.pth` | Trained model weights after gradient steps |
 | `*_scan_*.json` | Parameter sweep results (loss, precision, recall per condition) |
 | `*_periodic-with-noise.npz` | Periodic-memory robustness curves across noise levels and time chunks |
-| `*_TW_*.json` | Travelling-wave parameter scans |
-| `*_lorenz_chaotic_*.json` | Lorenz-attractor scan and optimisation outputs |
-| `wikipedia_dataset.parquet` | Downloaded Wikipedia corpus (text experiment) |
-| `*_wikipedia_fr_token_ids.npy` | Token-ID array of the tokenised corpus |
-| `*_codebook.pt` | Frequency-ordered token→neuron spike codebook |
-| `*_optuna.sqlite3` | Optuna studies (synthetic, travelling-wave, Lorenz, text) |
+| `*_optuna.sqlite3` | Optuna studies (synthetic motifs) |
 
 Delete a cached `.pth`, `.json`, `.npz`, or `.sqlite3` file to force recomputation;
 set `RECOMPUTE = True` at the top of any notebook to invalidate the full cache for

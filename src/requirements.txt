@@ -30,5 +30,3 @@ torch_optimizer
 scipy
 statsmodels
 scikit-learn
-MotionClouds
-h5py

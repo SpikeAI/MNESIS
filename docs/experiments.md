@@ -93,43 +93,17 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 {ref}`installation <cached-data>`.
 ```
 
-## Pattern zoo
+## Periodic motifs
 
 ```{toctree}
 :maxdepth: 1
 
 notebooks/18_MNESIS_learn-periodic
-notebooks/32_MNESIS_learn-travelling-waves
-notebooks/34_MNESIS_learn-Lorenz-attractor
-notebooks/36_MNESIS_learn-text
-notebooks/36_MNESIS_learn-text-alice
-notebooks/36_MNESIS_learn-text-alice-onehot
-notebooks/38_MNESIS_learn-SHD
 ```
 
 - {doc}`notebooks/18_MNESIS_learn-periodic` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
   noise.
-- {doc}`notebooks/32_MNESIS_learn-travelling-waves` — MotionClouds-based
-  travelling-wave patterns; benchmarks retrieval with structured spatiotemporal
-  motifs.
-- {doc}`notebooks/34_MNESIS_learn-Lorenz-attractor` — encodes Lorenz chaotic
-  trajectories into spike codes and evaluates memory recall on non-periodic
-  continuous dynamics.
-- {doc}`notebooks/36_MNESIS_learn-text` — tokenises a Wikipedia corpus
-  (`tiktoken`, `cl100k_base`) into token IDs, builds a frequency-ordered
-  **spike codebook** (most-frequent tokens get the sparsest neuron rows,
-  minimising the Hamming distance), wraps it in a `TextSpikingPattern`
-  generator, learns and recalls the resulting spike patterns, then decodes the
-  output spikes back to text via the inverse codebook + tokenizer. Includes
-  Optuna tuning and parameter scans.
-- {doc}`notebooks/36_MNESIS_learn-text-alice` /
-  {doc}`notebooks/36_MNESIS_learn-text-alice-onehot` — variants of the text
-  experiment on a fixed Alice-in-Wonderland-style corpus (the one-hot version
-  encodes tokens as one-hot spike patterns).
-- {doc}`notebooks/38_MNESIS_learn-SHD` — Spiking Heidelberg Digits data
-  loading/preprocessing for dataset-grounded experiments with real spiking
-  recordings.
 
 ## Orchestrator
 
@@ -140,8 +114,7 @@ notebooks/99_MNESIS_run-all
 ```
 
 - {doc}`notebooks/99_MNESIS_run-all` — scripted orchestrator that runs the
-  full notebook pipeline with progress timestamps (the SHD notebook is
-  currently commented out there).
+  full notebook pipeline with progress timestamps.
 
 ---
 
