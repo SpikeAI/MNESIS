@@ -13,6 +13,7 @@ metrics (:func:`get_scores`, :func:`get_f1score`,
 from pathlib import Path
 from dataclasses import dataclass, asdict, field
 import os
+import json
 import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import LambdaLR
@@ -257,6 +258,54 @@ def approx_equals(series, value, rtol=1e-6, atol=1e-12):
         return np.isclose(series.astype(float), float(value), rtol=rtol, atol=atol)
     except (TypeError, ValueError):
         return series == value
+
+def purge_unfinished_scans(datetag=None, data_cache=data_cache, ignore_locks=False, remove_locks=False, dry_run=False):
+    """Remove the placeholder rows left by interrupted scans, so they are recomputed.
+
+    A scan notebook reserves a row ``loss=inf, time=0.0`` (stored as ``null`` in
+    JSON) before computing it, and overwrites it when done. A row still in that
+    state means the process died in between, yet the scan loop treats it as
+    "already computed" and never retries it. Deleting the row lifts that block.
+    A failed evaluation also stores ``loss=inf`` but with a non-zero ``time``, so
+    it is kept.
+
+    Args:
+        datetag: Cache-filename prefix of the batch to clean (ISO 8601 date); None cleans the scans of all batches.
+        data_cache: Directory holding the ``{datetag}_*.json`` scan files.
+        ignore_locks: If False, skip the scans that have a ``.lock`` file, as they may still be running.
+        remove_locks: If True, also delete every ``.lock`` file of the selected batches, which lifts the block on resuming the scans. Only use it when no scan is running (e.g. at the start of the orchestrator), as it implies ``ignore_locks``.
+        dry_run: If True, only report what would be removed.
+
+    Returns:
+        Dictionary mapping each file name to the number of rows removed (or to be removed).
+    """
+    ignore_locks = ignore_locks or remove_locks
+    pattern = f'{datetag}_*' if datetag else '*'
+    removed = {}
+    for filename in sorted(Path(data_cache).glob(f'{pattern}.json')):
+        rows = json.loads(filename.read_text())
+        if not isinstance(rows, list) or not all(isinstance(r, dict) and 'i_cv' in r for r in rows):
+            continue # not a scan file
+        kept = [r for r in rows if not (r.get('loss') is None and r.get('time') == 0.0)]
+        n_bad = len(rows) - len(kept)
+        if n_bad == 0:
+            continue
+        if filename.with_suffix('.lock').exists() and not ignore_locks:
+            print(f"{filename.name}: {n_bad} unfinished row(s) kept, scan is locked")
+            continue
+        print(f"{filename.name}: {n_bad}/{len(rows)} unfinished row(s) {'to remove' if dry_run else 'removed'}")
+        removed[filename.name] = n_bad
+        if not dry_run:
+            tmp = filename.with_suffix('.json.tmp')
+            tmp.write_text(json.dumps(kept, indent=2))
+            tmp.replace(filename) # atomic: a concurrent reader never sees a half-written file
+    if remove_locks:
+        # done after the purge so that a lock never disappears while its file is being rewritten
+        for lock in sorted(Path(data_cache).glob(f'{pattern}.lock')):
+            print(f"{lock.name}: lock {'to remove' if dry_run else 'removed'}")
+            if not dry_run:
+                lock.unlink(missing_ok=True)
+    return removed
 
 def get_scores(pred, target, epsilon=1e-12):
     """Precision, recall and F1 between two (soft) spike tensors.
