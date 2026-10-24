@@ -54,7 +54,7 @@ initialisation in {meth}`mnesis_chains.HD_SNN.get_W_init`:
 
   $$I^*_j(t) = \vartheta_0 \bigl(s^*_j(t) - \beta \cdot s^*_j(t-1)\bigr).$$
 
-  With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
+  Here $\vartheta_0$ is the firing threshold (`lif_threshold`). With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
 
 - **`do_pinv`** (default `True`) — solve for $\mathbf{W}$ via the (numerically stable,
   computed on CPU) full pseudo-inverse $\mathbf{W} = \mathrm{pinv}(\mathbf{C})\,\mathbf{T}$.

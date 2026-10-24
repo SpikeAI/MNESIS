@@ -143,11 +143,37 @@ Each neuron $j$ evolves as:
 
 $$u_j(t) = \beta \cdot u_j(t-1) \cdot (1 - s_j(t-1)) + \sum_{i=1}^{N} \sum_{d=1}^{D} W_{j,i,d} \cdot s_i(t-d)$$
 
-The global `Params` defaults in the current `datetag` use $\beta = 0.8$ and threshold
-$\vartheta = 0.72$; individual experiments override these in their local `opt_dict`
+The global `Params` defaults in the current `datetag` use $\beta = 0.7$ and threshold
+$\vartheta = 0.75$; individual experiments override these in their local `opt_dict`
 (e.g. the text and travelling-wave runs use other $\beta$ / $\vartheta$ pairs). `Params`
 is the single source of hyperparameter truth; see the "Parameter drift" note below for
 why the prose, the paper, and the code need not always agree.
+
+### Variables
+
+Defaults are those of the `Params` dataclass in `src/mnesis_boilerplate.py`; one time bin is 1 ms.
+
+| Symbol | Code name | Default | Role |
+|---|---|---|---|
+| $N$ | `N_neuron` | 1024 | number of neurons |
+| $D$ | `num_delay` | 41 time bins (odd) | number of delays per synapse, i.e. length of a spiking motif |
+| $M$ | `N_pattern` | 16 | number of stored motifs |
+| $T$ | `N_time` | 1000 time bins | duration of each motif |
+| $N_\mathrm{pretime}$ | `N_pretime` | 50 time bins | spontaneous activity before and after the stimulus |
+| $p_A$ | `p_A` | 0.00016 per time bin | prior probability of firing |
+| $p_\mathrm{flip}$ | `p_flip` | 0.01 | probability of flipping a bit in the stochastic pattern generator |
+| — | `seed` | 2026 | seed of the random number generators |
+| $\beta$ | `lif_beta` | 0.70 | membrane decay per time bin |
+| $\vartheta$, $\vartheta_0$ | `lif_threshold` | 0.75 (membrane potential, a.u.) | firing threshold |
+| — | `learn_beta`, `learn_threshold` | `False` | make $\beta$ and $\vartheta$ learnable |
+| — | `do_pinv`, `do_deconv` | `True` | pseudo-inverse solution and membrane deconvolution of the initialisation |
+| — | `num_epochs` | 256 | number of training epochs |
+| — | `num_warmup_epochs` | 16 | epochs of the learning-rate warmup ramp |
+| — | `base_lr`, `final_lr` | 0.04, 0.0004 | learning rates at the peak and at the end of the cosine schedule |
+| $\delta_1$, $\delta_2$ | `delta1`, `delta2` | 0.003, 0.00001 | complements to 1 of the optimiser coefficients (momentum, decay) |
+| $p$ | `dropout` | 0.60 | dropout probability |
+| $\alpha$ | `alpha_surrogate` | 5.0 | sharpness of the surrogate gradient (`FastSigmoid`) |
+| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of cross-validation seeds |
 
 ### Analytical initialisation
 
@@ -159,7 +185,7 @@ initialisation in `HD_SNN.get_W_init()`:
 
   $$I^*_j(t) = \vartheta_0 \bigl(s^*_j(t) - \beta \cdot s^*_j(t-1)\bigr).$$
 
-  With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
+  Here $\vartheta_0$ is the firing threshold (`lif_threshold`). With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
 
 - **`do_pinv`** (default `True`) — solve for $\mathbf{W}$ via the (numerically stable,
   computed on CPU) full pseudo-inverse $\mathbf{W} = \mathrm{pinv}(\mathbf{C})\,\mathbf{T}$.
@@ -175,20 +201,20 @@ initialisation in `HD_SNN.get_W_init()`:
 ### Training
 
 - **Loss**: $\mathcal{L} = 1 - F_1$ (harmonic mean of precision and recall, evaluated after the trigger window) — `SpikeF1scoreLoss`
-- **Optimiser**: SGD by default (`sgd`), configurable via `Params.optimizer` (also supports `adam`, `adamw`, `rmsprop`, `adadelta`)
+- **Optimiser**: Adadelta by default (`adadelta`), configurable via `Params.optimizer` (also supports `sgd`, `adam`, `adamw`, `rmsprop`)
 - **Schedule**: cosine decay with a `num_warmup_epochs` warmup ramp (`final_lr` → `base_lr`)
 - **Surrogate**: fast sigmoid by default, sharpness $\alpha = 5.0$ — configurable via `Params.surrogate_name` / `Params.alpha_surrogate`
-- **Regularisation**: dropout $p = 0.25$, weight decay $\lambda = 0$
-- **LIF dynamics**: $\beta = 0.8$, $\vartheta = 0.72$, zero-reset (`subtract`)
+- **Regularisation**: dropout $p = 0.6$, weight decay $\lambda = 0$
+- **LIF dynamics**: $\beta = 0.7$, $\vartheta = 0.75$, zero-reset (`zero`)
 - **Hardware**: Apple M3 Ultra (MPS) or NVIDIA GPU (CUDA / Jean Zay GENCI)
 
-> **Parameter drift.** The `Params` defaults are the *latest camera-ready run* (the current
-> `datetag`, `2026-08-06`) and have moved on from the values in the paper text and earlier
-> revisions of this README (notably $\beta$: `0.8` vs `0.7`; $\vartheta$: `0.72` vs `1.0`;
-> $\alpha$: `5.0` vs `15`; dropout `0.25` vs `0.37`). Each notebook also sets its own
-> `opt_dict`. The code (and this table) is authoritative for *what the current default run
-> does*; consult the specific `opt_dict` and `tex/Perrinet26mnesis.pdf` for the exact value
-> a given paper figure used.
+> **Parameter drift.** As of the reconciliation run `2026-09-07` (the current `datetag`),
+> the `Params` defaults ($\beta = 0.7$, $\vartheta = 0.75$, $\alpha = 5$, `adadelta`,
+> dropout $0.6$) match the methods text of the paper. Earlier revisions of this README and
+> the camera-ready runs cite other values ($\beta = 0.8$, $\alpha = 12$, SGD, dropout
+> $0.10$). Each notebook also sets its own `opt_dict`. The code is authoritative for *what
+> the current default run does*; consult the specific `opt_dict` and
+> `tex/Perrinet26mnesis.pdf` for the exact value a given paper figure used.
 
 > An AI assistant was used to improve the readability and structure of this codebase — not to create it.
 
