@@ -10,6 +10,12 @@
 \usepackage{fontspec}
 \usepackage{geometry}
 \geometry{a4paper, margin=1in}
+% running head: short title on every page except the title page (plain style)
+\usepackage{scrlayer-scrpage}
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\chead{\ShortTitle}
+\cfoot*{\pagemark}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
 
