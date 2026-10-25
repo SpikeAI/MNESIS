@@ -75,7 +75,7 @@ templates_path = []
 
 html_theme = "furo"
 html_static_path = []
-html_title = "MNESIS | Working Memory in a Recurrent Spiking Neural Network"
+html_title = "MNESIS | Working Memory in Recurrent Spiking Neural Networks"
 
 html_context = {
     "docs_github_url": "https://laurentperrinet.github.io/MNESIS/",

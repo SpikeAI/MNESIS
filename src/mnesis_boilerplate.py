@@ -38,7 +38,7 @@ if DEBUG > 1:
 
 datetag = '2026-07-11' # run with new parameters from the camera ready
 datetag = '2026-08-06' # novel run on the revamped code
-datetag = '2026-09-07' # post poster RT neurocomp - preparing ICANN poster, INT semainr and paper submission
+datetag = '2026-09-07' # post poster RT neurocomp - preparing ICANN poster, INT seminar and paper submission
 print(f"datetag = '{datetag}'")
 
 # --- Torch Setup ---
@@ -133,7 +133,7 @@ if os.environ.get("USER") == "uvb28bo":
     figpath = None # Jean Zay
 
 # --- Figure style (single source of truth, applied globally at import) ---
-# Figures are typeset with the same face as the LaTeX manuscript and poster
+# Figures are typeset with the same face as the LaTeX manuscript
 # (lualatex -> Latin Modern), at Physical-Review-like single-column size.
 def _register_tex_fonts():
     faces = []

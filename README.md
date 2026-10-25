@@ -1,4 +1,4 @@
-# MNESIS — Working Memory in a Recurrent Spiking Neural Network with Heterogeneous Synaptic Delays
+# MNESIS — Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green.svg)](LICENSE)
@@ -16,7 +16,7 @@ Working memory in biological neural circuits relies on precise spike timing rath
 
 The same `HD_SNN` framework is applied to sparse synthetic motifs and to periodic motifs. The experiments below build on one another: each numbered notebook imports the shared infrastructure and loads the cached artifacts produced by the previous one.
 
-**Paper:** Laurent U. Perrinet (2026). *Working Memory in a Recurrent Spiking Neural Network with Heterogeneous Synaptic Delays*. ICANN 2026.
+**Paper:** Laurent U. Perrinet (2026). *Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays*. ICANN 2026.
 [`tex/Perrinet26mnesis.pdf`](tex/Perrinet26mnesis.pdf) · [`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
 
 ---
@@ -229,8 +229,8 @@ initialisation in `HD_SNN.get_W_init()`:
 ```bibtex
 @inproceedings{Perrinet2026MNESIS,
   author       = {Perrinet, Laurent U.},
-  title        = {Working Memory in a Recurrent Spiking Neural Network
-                with Heterogeneous Synaptic Delays},
+  title        = {Working Memory in Recurrent Spiking Neural Networks
+                With Heterogeneous Synaptic Delays},
   booktitle    = {ICANN 2026},
   year         = {2026},
   url          = {https://laurentperrinet.github.io/publication/perrinet-26-icann/}

@@ -234,7 +234,7 @@ not a stray character.
    "autocorrect" code defaults to match stale prose** — consult `README.md` /
    `tex/Perrinet26mnesis.pdf` for the exact value a given figure used.
   Each notebook may also override defaults with its own local `opt_dict`.
-- **Bibliography toolchain.** The paper and poster `.tex` files were migrated from `natbib`/`bibtex` to `biblatex`/`biber` (updates to `Perrinet26mnesis.tex` and `Perrinet26mnesis_poster.tex`: replace `\usepackage{natbib}` with `\usepackage[style=numeric, sorting=none]{biblatex}` + `\addbibresource{mnesis.bib}`, and replace `\bibliographystyle{plainnat}\bibliography{mnesis}` with `\addbibresource{mnesis.bib}\printbibliography`; bibliography line `%!BIB TS-program = bibtex` → `%!BIB TS-program = biber). Do not revert these changes.
+- **Bibliography toolchain.** The paper `.tex` file was migrated from `natbib`/`bibtex` to `biblatex`/`biber` (updates to `Perrinet26mnesis.tex`: replace `\usepackage{natbib}` with `\usepackage[style=numeric, sorting=none]{biblatex}` + `\addbibresource{mnesis.bib}`, and replace `\bibliographystyle{plainnat}\bibliography{mnesis}` with `\addbibresource{mnesis.bib}\printbibliography`; bibliography line `%!BIB TS-program = bibtex` → `%!BIB TS-program = biber). Do not revert these changes.
 - The analytical initialisation in `HD_SNN.get_W_init` is controlled by two flags:
   `do_pinv` (default `True`; `False` switches to the Hebbian cross-correlation rule)
   and `do_deconv` (default `True`; LIF-membrane deconvolution of the target).

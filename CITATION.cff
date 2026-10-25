@@ -4,7 +4,7 @@ message: >-
   (preferred-citation below) and, where relevant, this repository.
 type: software
 title: >-
-  MNESIS: Working Memory in a Recurrent Spiking Neural Network with
+  MNESIS: Working Memory in Recurrent Spiking Neural Networks With
   Heterogeneous Synaptic Delays
 abstract: >-
   MNESIS is a recurrent spiking neural network (SNN) in which every synapse

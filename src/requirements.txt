@@ -3,13 +3,11 @@
 # `pip install -U -r requirements.txt`
 pip
 torch
-torchvision
 snntorch
 optuna
 ipykernel
 matplotlib
 seaborn
-SciencePlots
 numpy
 pandas
 jinja2
@@ -22,11 +20,7 @@ jupyter_contrib_nbextensions
 nbconvert
 jupyterlab
 ipynb
-optuna
 optuna-dashboard
 tqdm
 plotly
-torch_optimizer
 scipy
-statsmodels
-scikit-learn
