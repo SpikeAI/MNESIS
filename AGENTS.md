@@ -8,14 +8,27 @@ delays. The repository has two independent, buildable halves:
 - **`src/`** — Python source and Jupyter experiment notebooks. Core code lives in
   two modules (`mnesis_boilerplate.py`, `mnesis_chains.py`); the numbered
   notebooks import from them and are run sequentially.
-- **`tex/`** — LaTeX source of the paper (`Perrinet26mnesis.tex`), a small set of
-  standalone TikZ figures, a bibliography, and the Springer LNCS class/style files.
+- **`tex/`** — LaTeX source of the paper (`Perrinet26mnesis.tex`, KOMA-Script
+  `scrartcl` class), a small set of standalone TikZ figures, and a bibliography.
+
+Around them:
+
+- **`figures/`** — figures written by the notebooks (pdf/png/svg, versioned) and
+  read by the paper.
+- **`docs/`** — Sphinx sources of the documentation site (Markdown pages,
+  `conf.py`, `Makefile`); built and deployed to GitHub Pages by
+  `.github/workflows/static.yml` (see [Documentation site](#documentation-site)).
+- **`CITATION.cff`** — citation metadata (preferred citation: the ICANN 2026
+  paper, arXiv `2604.14096`); keep it in sync with the BibTeX entry of `README.md`
+  and `docs/index.md`.
+- **`cached_data/`** — git-ignored cache of weights and scan results.
 
 This file gives **rules, commands, and gotchas** for agents working in the
 repository; it is not a place for reference data. The full parameter catalogue,
-per-experiment results, and notebook inventory live in `README.md` — point there
-for "what value / what result", and to the paper (`tex/Perrinet26mnesis.pdf`) for
-the camera-ready numbers.
+per-experiment results, cache inventory and notebook inventory live in
+`README.md` — point there for "what value / what result", and to the paper
+(`tex/Perrinet26mnesis.pdf`, built locally and git-ignored) for the camera-ready
+numbers.
 
 An AI assistant was used to improve the readability of the code, not to create
 it; these rules guide how that formatting and testing was done.
@@ -35,7 +48,7 @@ notebooks (*.ipynb)
 
 | File | Role |
 |---|---|
-| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `Params` dataclass (single source of hyperparameter truth), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, cosine LR schedule). |
+| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, cosine LR schedule, `purge_unfinished_scans`). |
 | `src/mnesis_chains.py` | Pattern generators (`SpikingPattern`, `StochasticSpikingPattern`) and the `HD_SNN` class (`forward_pass`, `get_W_init`, `update_weight`, `learn_model`); also a `load()` helper for trained checkpoints. |
 
 Notebooks (`src/*.ipynb`) are numbered simple → complex, each loading cached
@@ -88,12 +101,16 @@ sentinel file guards against concurrent runs of the same scan.
 4. For each parameter value, skip it if already computed; otherwise run the scan and append to the JSON.
 5. Delete the lock file when done.
 This avoids data corruption and allows safe incremental resumption — never delete
-a `.lock` out from under a running scan.
+a `.lock` out from under a running scan. A scan reserves a placeholder row
+(`loss=null`, `time=0.0`) before computing it; if the process dies, that row would
+count as computed forever. `purge_unfinished_scans()` (run at the start of
+notebook 99, skipping locked scans unless `remove_locks=True`) deletes those rows.
 
 ### Test / compile the Python side
 
-There is **no unit-test framework** (no pytest/CI). The checks below *are* the
-tests; run the fast one first, then a representative notebook, and only the full
+There is **no unit-test framework** (no pytest), and the only CI workflow builds
+the documentation (see [Documentation site](#documentation-site)), it does not
+run the notebooks. The checks below *are* the tests; run the fast one first, then a representative notebook, and only the full
 orchestrator when you need end-to-end verification.
 
 ```bash
@@ -119,16 +136,17 @@ jupyter nbconvert --to notebook --execute --inplace 99_MNESIS_run-all.ipynb
 
 | File | Role |
 |---|---|
-| `Perrinet26mnesis.tex` | Main paper. `\input{metadata}` + biblatex (`\addbibresource{mnesis.bib}`, `\printbibliography`). Uses `fontspec` — **must be built with `lualatex`**, not `pdflatex`. |
+| `Perrinet26mnesis.tex` | Main paper (`\documentclass{scrartcl}`). `\input{metadata}` + biblatex (`\addbibresource{mnesis.bib}`, `\printbibliography`). Uses `fontspec` — **must be built with `lualatex`**, not `pdflatex`. |
 | `metadata.tex` | `\input` fragment (author/affiliation/AI-statement macros); **no** `\documentclass`, do not compile standalone. |
-| `tikz_izhikevich.tex`, `tikz_snntorch.tex` | Standalone TikZ figures (`\documentclass{standalone}`); compiled to their own PDFs in `tex/`. |
-| `figure_*.tex` | `\input` figure environments (caption + `\label`) whose graphics come from `../figures/` (e.g. `figure_target.tex` → `fig:target`, `figure_robustness.tex` → `fig:noise`). |
+| `tikz_izhikevich.tex`, `tikz_snntorch.tex` | Standalone TikZ figures (`\documentclass{standalone}`); compiled to their own PDFs in `tex/` (the PDFs are versioned). |
+| `figure_*.tex` | `\input` figure environments (caption + `\label`). `figure_izhikevich.tex` and `figure_snntorch.tex` wrap the TikZ PDFs of `tex/` (`figure_snntorch.tex` also includes `pattern.pdf`); `figure_target.tex`, `figure_retrieval.tex`, `figure_robustness.tex` (→ `fig:noise`) and `figure_scan.tex` take their graphics from `../figures/`. |
 | `mnesis.bib` | Bibliography database. |
 
 The main paper resolves experiment figures through `\graphicspath{{../figures/}}`
-(`Perrinet26mnesis.tex:40`): `pattern.pdf`, `target.pdf`, `retrieval.pdf`, the
-`*_score.pdf` curves, etc. are **generated by the `src/` notebooks**, not built in
-`tex/`. The two TikZ figures are built in `tex/`. Build everything from inside
+(in the preamble of `Perrinet26mnesis.tex`): `pattern.pdf`, `target.pdf`,
+`retrieval.pdf`, the `*_score.pdf` curves and the `scan_*.pdf` bars are
+**generated by the `src/` notebooks**, not built in `tex/`. The two TikZ figures
+are built in `tex/`. Build everything from inside
 `tex/`. Engine is `lualatex` (fontspec); toolchain: `lualatex`, `latexmk -pdflua`,
 `biber`.
 
@@ -164,13 +182,43 @@ A clean run produces `tex/Perrinet26mnesis.pdf`. (A `Missing character: ^^V
 control character in the sources.) Generated byproducts
 (`.aux`, `.bbl`, `.blg`, `.log`, `.fls`, `.fdb_latexmk`, `.synctex.gz`, and the
 `Perrinet26mnesis_copy.tex*` scratch copy) are git-ignored — never commit them.
+The compiled `tex/Perrinet26mnesis.pdf` is git-ignored too.
+
+---
+
+## Documentation site
+
+`docs/` holds the Sphinx sources only (`conf.py`, `Makefile`, `requirements.txt`,
+and the pages `index.md`, `installation.md`, `api.md`, `experiments.md`, written
+in MyST Markdown). `make -C docs html` symlinks `src/*.ipynb` into
+`docs/notebooks/` and renders them with their stored outputs (`nbsphinx_execute =
+"never"`), and builds the API pages from the docstrings (`autodoc` + `napoleon`,
+Google style). `docs/_build/` and `docs/notebooks/` are git-ignored.
+
+The workflow `.github/workflows/static.yml` runs that build on every push to `main`
+and deploys `docs/_build/html` to GitHub Pages
+(<https://laurentperrinet.github.io/MNESIS/>); never commit built HTML.
+
+- `docs/index.md` repeats the model equations, the variables table, the parameter
+  drift note and the results of `README.md`: change both together.
+- `docs/api.md` lists the documented members of `mnesis_boilerplate` explicitly:
+  add any new public helper there.
+- The CI installs its own dependency list (CPU-only `torch`, `snntorch`, …), not
+  `docs/requirements.txt`: a new import in the modules must be added to both.
+
+```bash
+pip install -r docs/requirements.txt && make -C docs html   # green if Sphinx exits without error
+```
 
 ---
 
 ## Notebook annotations
 
 Each experiment notebook carries markdown documentation in a standard shape
-(see notebooks 10–16 for models to follow):
+(see notebooks 11 and 14–16 for models to follow). Notebooks 10 and 13 follow the
+shape but lack the `<!-- MNESIS-annotated -->` marker; notebooks 18, 20, 25 and
+99 do not follow it yet (18 has a summary without the H1 title, 20 and 25 start
+with code).
 
 - **H1 title** (`# ...`) as the first markdown cell, stating the experiment in
   one paragraph; end it with the `<!-- MNESIS-annotated -->` idempotency marker
@@ -208,12 +256,17 @@ plot.
 
 | figure | notebook |
 |---|---|
-| `frozen`, `two_ssp` | 10 |
-| `pattern`, `target_init`, `target` | 11 |
+| `ssp_frozen_pattern`, `ssp_two_frozen_pattern` | 10 |
+| `pattern`, `target_init`, `target`, `histogram_log` | 11 |
 | `retrieval` (+ `.mp4`) | 13 |
 | `p_flip_target`, `p_flip_score`, `p_flip_retrain_score` | 14 |
 | `trigger_time`, `trigger_time_score` | 15 |
 | `fraction_target`, `fraction_target_score` | 16 |
+| `scan_{key}` (one per scanned parameter) | 20 |
+| `periodic_*` / `optuna` (displayed only, `figpath=None`) | 18 / 25 |
+
+`printfig` skips an existing file unless `DEBUG > 1`: to refresh a figure in
+production, delete it from `figures/` first.
 
 **Character hygiene:** no non-breaking/narrow spaces (U+00A0/U+202F), zero-width
 characters, curly quotes or non-ASCII hyphens in `.py`, `.ipynb`, `.tex`

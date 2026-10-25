@@ -42,6 +42,44 @@ Each neuron $j$ evolves as:
 
 $$u_j(t) = \beta \cdot u_j(t-1) \cdot (1 - s_j(t-1)) + \sum_{i=1}^{N} \sum_{d=1}^{D} W_{j,i,d} \cdot s_i(t-d)$$
 
+where $u_j(t)$ is the membrane potential of neuron $j$ at time bin $t$, $s_j(t) \in \{0, 1\}$
+its spike (emitted when $u_j(t)$ crosses the threshold $\vartheta$, after which the membrane is
+reset to zero), $\beta$ the membrane decay per time bin, and $W_{j,i,d}$ the weight from neuron
+$i$ to neuron $j$ at delay $d$. In the code, $\mathbf{W}$ is the `lin` layer of
+{class}`~mnesis_chains.HD_SNN`, of shape `(N_neuron, N_neuron * num_delay)`. During training,
+dropout of probability $p$ is applied to the input current.
+
+The motifs are drawn by {class}`~mnesis_chains.SpikingPattern` as a frozen Bernoulli raster of
+rate $p_A$; {class}`~mnesis_chains.StochasticSpikingPattern` returns realisations of it in which
+each bit is redrawn with probability $p_\mathrm{flip}$ (balanced bit flips that preserve the
+marginal rate).
+
+### Variables
+
+Defaults are those of the {class}`~mnesis_boilerplate.Params` dataclass; one time bin is 1 ms.
+
+| Symbol | Code name | Default | Role |
+|---|---|---|---|
+| $N$ | `N_neuron` | 1024 | number of neurons |
+| $D$ | `num_delay` | 41 time bins | number of delays per synapse, i.e. length of a spiking motif |
+| $M$ | `N_pattern` | 16 | number of stored motifs |
+| $T$ | `N_time` | 1000 time bins | duration of each motif |
+| $N_\mathrm{pretime}$ | `N_pretime` | 50 time bins | spontaneous activity before and after the stimulus |
+| $p_A$ | `p_A` | 0.00016 per time bin | prior probability of firing |
+| $p_\mathrm{flip}$ | `p_flip` | 0.01 | probability of flipping a bit in the stochastic pattern generator |
+| — | `seed` | 2026 | seed of the random number generators |
+| $\beta$ | `lif_beta` | 0.70 | membrane decay per time bin |
+| $\vartheta$, $\vartheta_0$ | `lif_threshold` | 0.75 (membrane potential, a.u.) | firing threshold |
+| — | `learn_beta`, `learn_threshold` | `False` | make $\beta$ and $\vartheta$ learnable |
+| — | `do_pinv`, `do_deconv` | `True` | pseudo-inverse solution and membrane deconvolution of the initialisation |
+| — | `num_epochs` | 256 | number of training epochs |
+| — | `num_warmup_epochs` | 16 | epochs of the learning-rate warmup ramp |
+| — | `base_lr`, `final_lr` | 0.04, 0.0004 | learning rates at the peak and at the end of the cosine schedule |
+| $\delta_1$, $\delta_2$ | `delta1`, `delta2` | 0.003, 0.00001 | complements to 1 of the optimiser coefficients (momentum, decay) |
+| $p$ | `dropout` | 0.60 | dropout probability |
+| $\alpha$ | `alpha_surrogate` | 5.0 | sharpness of the surrogate gradient (`FastSigmoid`) |
+| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of cross-validation seeds |
+
 ### Analytical initialisation
 
 The LIF membrane is a causal IIR lowpass. Two orthogonal flags control the closed-form
@@ -65,15 +103,20 @@ initialisation in {meth}`mnesis_chains.HD_SNN.get_W_init`:
 
 - **Loss**: $\mathcal{L} = 1 - F_1$ (harmonic mean of precision and recall, evaluated
   after the trigger window) — {class}`mnesis_boilerplate.SpikeF1scoreLoss`
-- **Optimiser**: configurable via {attr}`mnesis_boilerplate.Params.optimizer`
-  (`adam`, `adamw`, `sgd`, `rmsprop`, `adadelta`, …)
-- **Schedule**: cosine decay with a `num_warmup_epochs` warmup ramp
-- **Surrogate**: fast sigmoid by default, sharpness $\alpha$ configurable in `Params`
+- **Optimiser**: Adadelta by default, configurable via
+  {attr}`mnesis_boilerplate.Params.optimizer` (also `sgd`, `adam`, `adamw`, `rmsprop`)
+- **Schedule**: cosine decay with a `num_warmup_epochs` warmup ramp (`final_lr` → `base_lr`)
+- **Surrogate**: fast sigmoid by default, sharpness $\alpha = 5.0$ — configurable via
+  `Params.surrogate_name` / `Params.alpha_surrogate`
+- **Regularisation**: dropout $p = 0.6$
+- **LIF dynamics**: $\beta = 0.7$, $\vartheta = 0.75$, zero-reset (`zero`)
 - **Hardware**: Apple silicon (MPS) or NVIDIA GPU (CUDA / Jean Zay GENCI)
 
 ```{note}
-**Parameter drift.** The `Params` defaults are the *latest camera-ready run* (see the
-`datetag`) and have moved on from the values in the paper text and earlier revisions.
+**Parameter drift.** As of the reconciliation run `2026-09-07` (the current `datetag`),
+the `Params` defaults ($\beta = 0.7$, $\vartheta = 0.75$, $\alpha = 5$, `adadelta`,
+dropout $0.6$) match the methods text of the paper. Earlier documents and the
+camera-ready runs cite other values ($\beta = 0.8$, $\alpha = 12$, SGD, dropout $0.10$).
 Each notebook also sets its own `opt_dict`. The code is authoritative for *what the
 current default run does*; consult the specific `opt_dict` and the paper PDF for the
 exact value a given figure used.
@@ -81,7 +124,11 @@ exact value a given figure used.
 
 ## Results summary
 
-| Experiment | Key result |
+The values below are those quoted in the paper. The caches of the current `datetag`
+may differ: in particular, notebook 20 now scans other grids ($D \in [1, 60]$,
+$T \in [100, 1558]$, $N \in [50, 2000]$, $p_A \in [2 \times 10^{-4}, 5 \times 10^{-2}]$).
+
+| Experiment | Key result (paper) |
 |---|---|
 | Training (NB 11) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
 | Sequential retrieval (NB 13) | All 16 patterns retrieved without cross-interference |
@@ -102,9 +149,15 @@ exact value a given figure used.
                   With Heterogeneous Synaptic Delays},
   booktitle     = {ICANN 2026},
   year          = {2026},
+  eprint        = {2604.14096},
+  archivePrefix = {arXiv},
+  doi           = {10.48550/arXiv.2604.14096},
   url           = {https://laurentperrinet.github.io/publication/perrinet-26-icann/}
 }
 ```
+
+Machine-readable citation metadata is in
+[`CITATION.cff`](https://github.com/laurentperrinet/MNESIS/blob/main/CITATION.cff).
 
 ```{toctree}
 :maxdepth: 2

@@ -22,7 +22,7 @@ utilities). Documentation is generated from the docstrings via
 ```{eval-rst}
 .. automodule:: mnesis_boilerplate
    :members: Params, pprint, printfig, flip_bits, stop, approx_equals,
-             get_scores, get_f1score, SpikeF1scoreLoss,
+             purge_unfinished_scans, get_scores, get_f1score, SpikeF1scoreLoss,
              get_cosine_schedule_with_warmup
    :undoc-members:
    :show-inheritance:

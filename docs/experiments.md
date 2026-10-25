@@ -24,12 +24,12 @@ build — run them yourself as described in {doc}`installation`).
 notebooks/10_MNESIS_generative-model
 ```
 
-- {doc}`notebooks/10_MNESIS_generative-model` — implements the generative model
-  for synthetic sparse patterns: draws Gaussian logit maps
-  $\ell \sim \mathcal{N}(0, E_\mathrm{SM})$, thresholds to keep the top
-  $p_\mathrm{SM}$ fraction, convolves with the biphasic spike shape, and samples
-  Bernoulli spike trains at rate $p_A$. Produces the `frozen` and `two_ssp`
-  figures and the cached artifacts used by all downstream notebooks.
+- {doc}`notebooks/10_MNESIS_generative-model` — defines the motifs every
+  downstream notebook memorises: {class}`~mnesis_chains.SpikingPattern` draws a
+  frozen Bernoulli raster of rate $p_A$ (seeded with `seed`), and
+  {class}`~mnesis_chains.StochasticSpikingPattern` returns realisations of it with
+  balanced bit flips of probability $p_\mathrm{flip}$. Figures:
+  `ssp_frozen_pattern`, `ssp_two_frozen_pattern`.
 
 ## Learning and retrieval on synthetic motifs
 
@@ -43,7 +43,8 @@ notebooks/13_MNESIS_testing-inference
 - {doc}`notebooks/11_MNESIS_learn-synthetic` — trains the network on
   $M = 16$ synthetic sparse patterns. Demonstrates that the analytical init
   alone reaches high $F_1$; gradient training with a cosine schedule then
-  improves noise robustness. Figures: `pattern`, `target_init`, `target`.
+  improves noise robustness. Figures: `pattern`, `target_init`, `target`,
+  `histogram_log`.
 - {doc}`notebooks/13_MNESIS_testing-inference` — concatenates all $M = 16$
   patterns in sequence with $N_\mathrm{pretime} = 50$ steps of spontaneous
   inter-trial activity; evaluates sliding-window $F_1$ to confirm selective,
@@ -60,14 +61,18 @@ notebooks/16_MNESIS_testing-trigger-fraction
 ```
 
 - {doc}`notebooks/14_MNESIS_testing-noise` — bit-flip noise on the trigger
-  window ($p_\mathrm{flip} \in [0, 1]$). Quantifies attractor-like robustness:
-  $F_1 = 0.967$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$.
+  window ($p_\mathrm{flip} \in [0, 1]$), with fixed weights and, as a control,
+  with a network re-trained at each noise level. The paper reports
+  $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$.
+  Figures: `p_flip_target`, `p_flip_score`, `p_flip_retrain_score`.
 - {doc}`notebooks/15_MNESIS_testing-trigger-duration` — truncated trigger
-  window (0 to $D-1$ steps); finds the minimum cue length for reliable recall:
-  $F_1 = 0.862$ at 75% of $D$.
+  window; finds the minimum cue length for reliable recall. The paper reports
+  $F_1 \approx 0.42$ at 75% of $D$. Figures: `trigger_time`,
+  `trigger_time_score`.
 - {doc}`notebooks/16_MNESIS_testing-trigger-fraction` — partial neuron coverage
-  (0 to $N$ neurons silenced in the trigger); perfect recall is maintained with
-  87.5% of neurons active.
+  (0 to $N$ neurons silenced in the trigger). The paper reports
+  $F_1 \approx 0.60$ with 87.5% of neurons active. Figures: `fraction_target`,
+  `fraction_target_score`.
 
 ## Parameter scans & optimisation
 
@@ -79,12 +84,15 @@ notebooks/25_MNESIS_optuna
 ```
 
 - {doc}`notebooks/20_MNESIS_scanning-parameters` — systematic one-at-a-time
-  scans over $D$, $T$, $p_A$, $N$, $E_\mathrm{SM}$, $p_\mathrm{SM}$, and the
-  `do_pinv` / `do_deconv` flags, with $N_\mathrm{cv} = 10$ seeds; produces the
-  parameter-scan figures of the paper.
+  scans over `N_pattern` ($M$), `N_time` ($T$), `num_delay` ($D$), `N_neuron`
+  ($N$), `p_A`, `lif_threshold` ($\vartheta$), `p_flip`, and the `do_deconv` /
+  `do_pinv` flags, with $N_\mathrm{cv} = 10$ seeds per value; produces the
+  `scan_{key}` figures, of which `scan_num_delay`, `scan_N_time` and
+  `scan_N_neuron` appear in the paper.
 - {doc}`notebooks/25_MNESIS_optuna` — automated hyperparameter search with
-  [Optuna](https://optuna.org/) over learning dynamics, thresholds, and
-  regularisation.
+  [Optuna](https://optuna.org/) over the initialisation flags, learnable
+  $\beta$ / $\vartheta$, reset mechanism, optimiser, $\beta$, surrogate
+  sharpness and learning rates. Its figure is displayed, not saved.
 
 ```{note}
 The scan/optimisation notebooks use file-based locking: a `.lock` sentinel
@@ -103,7 +111,7 @@ notebooks/18_MNESIS_learn-periodic
 
 - {doc}`notebooks/18_MNESIS_learn-periodic` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
-  noise.
+  noise. Its `periodic_*` figures are displayed, not saved.
 
 ## Orchestrator
 
@@ -113,12 +121,16 @@ notebooks/18_MNESIS_learn-periodic
 notebooks/99_MNESIS_run-all
 ```
 
-- {doc}`notebooks/99_MNESIS_run-all` — scripted orchestrator that runs the
-  full notebook pipeline with progress timestamps.
+- {doc}`notebooks/99_MNESIS_run-all` — scripted orchestrator: purges the
+  placeholder rows of interrupted scans
+  ({func}`~mnesis_boilerplate.purge_unfinished_scans`), then runs the full
+  notebook pipeline (10 → 25) with progress timestamps.
 
 ---
 
-All figures cited above are generated by the notebooks into `figures/`
-(git-ignored directory populated by the runs); the paper captions in
-`tex/figure_*.tex` use the same colour convention as the raster legend — see
-{doc}`installation` to reproduce them.
+All saved figures cited above are written by the notebooks into `figures/` (in
+pdf, png and svg, versioned in the repository) through
+{func}`~mnesis_boilerplate.printfig`, which only overwrites an existing file when
+`DEBUG > 1`. The paper reads them from there; its captions in `tex/figure_*.tex`
+use the same colour convention as the raster legend — see {doc}`installation` to
+reproduce them.
