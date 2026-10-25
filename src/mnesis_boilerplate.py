@@ -65,7 +65,7 @@ class Params:
     that a given ``seed`` reproduces a run. Field groups:
 
     Attributes:
-        N_neuron, num_delay (odd, for convolution symmetry), N_pattern,
+        N_neuron, num_delay, N_pattern,
             N_time, N_pretime, p_A, p_flip, seed: network size and statistics.
         lif_beta, lif_threshold, learn_beta, learn_threshold, do_pinv,
             do_deconv: membrane dynamics and analytical-init flags.
@@ -77,7 +77,7 @@ class Params:
     """
     datetag: str = datetag  
     N_neuron: int = 1024 // DEBUG        # number of presynaptic inputs
-    num_delay: int = 41                  # number of timesteps in SM, must be a odd number for convolutions
+    num_delay: int = 41                  # number of timesteps in SM (no parity constraint: the delay windows are causal)
     N_pattern: int = 16 // DEBUG         # number of spiking motifs
     N_time: int = 1000 // DEBUG          # number of timebins for the WM patterns
     N_pretime: int = 50                  # number of timebins for spontaneous activity before and after the stimulus

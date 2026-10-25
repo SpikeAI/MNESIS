@@ -143,7 +143,7 @@ Defaults are those of the `Params` dataclass in `src/mnesis_boilerplate.py`; one
 | Symbol | Code name | Default | Role |
 |---|---|---|---|
 | $N$ | `N_neuron` | 1024 | number of neurons |
-| $D$ | `num_delay` | 41 time bins (odd) | number of delays per synapse, i.e. length of a spiking motif |
+| $D$ | `num_delay` | 41 time bins | number of delays per synapse, i.e. length of a spiking motif |
 | $M$ | `N_pattern` | 16 | number of stored motifs |
 | $T$ | `N_time` | 1000 time bins | duration of each motif |
 | $N_\mathrm{pretime}$ | `N_pretime` | 50 time bins | spontaneous activity before and after the stimulus |

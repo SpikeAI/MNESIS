@@ -238,6 +238,9 @@ not a stray character.
 - The analytical initialisation in `HD_SNN.get_W_init` is controlled by two flags:
   `do_pinv` (default `True`; `False` switches to the Hebbian cross-correlation rule)
   and `do_deconv` (default `True`; LIF-membrane deconvolution of the target).
-- `num_delay` must stay **odd** (convolution symmetry).
+- `num_delay` has **no parity constraint**: the odd-value rule came from the
+  former centred `conv1d` generator (removed in May 2026), whereas the causal
+  delay windows of `forward_pass` and `get_W_init` accept any positive value
+  (the `num_delay` scan of notebook 20 includes even values).
 - Keep notebooks' shared code **in the two modules**, not inlined — notebooks are
   meant to stay import-only.
