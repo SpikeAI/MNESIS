@@ -98,8 +98,9 @@
     \node[font=\Large] at (\ellipsisX, \iY) {$\cdots$};
     \node[font=\Large] at (\ellipsisX, \xY) {$\cdots$};
  
-  % Clip-friendly top border for the dashed envelope
-  \path[use as bounding box] (-1.7,-3.35) rectangle (9.8,3.55);
+  % Clip-friendly top border for the dashed envelope; the height (7.054 cm,
+  % plus the 2pt standalone border) gives the golden ratio, as pattern.pdf
+  \path[use as bounding box] (-1.7,-3.427) rectangle (9.8,3.627);
   \end{tikzpicture}%
 % -------------------- END OF YOUR PICTURE -----------------
 \end{document}
