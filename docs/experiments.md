@@ -18,13 +18,7 @@ build — run them yourself as described in {doc}`installation`).
 
 ## Generative model
 
-```{toctree}
-:maxdepth: 1
-
-notebooks/10_MNESIS_generative-model
-```
-
-- {doc}`notebooks/10_MNESIS_generative-model` — defines the motifs every
+- {doc}`NB 10: Generative model <notebooks/10_MNESIS_generative-model>` — defines the motifs every
   downstream notebook memorises: {class}`~mnesis_chains.SpikingPattern` draws a
   frozen Bernoulli raster of rate $p_A$ (seeded with `seed`), and
   {class}`~mnesis_chains.StochasticSpikingPattern` returns realisations of it with
@@ -33,63 +27,41 @@ notebooks/10_MNESIS_generative-model
 
 ## Learning and retrieval on synthetic motifs
 
-```{toctree}
-:maxdepth: 1
-
-notebooks/11_MNESIS_learn-synthetic
-notebooks/13_MNESIS_testing-inference
-```
-
-- {doc}`notebooks/11_MNESIS_learn-synthetic` — trains the network on
+- {doc}`NB 11: Learning synthetic motifs <notebooks/11_MNESIS_learn-synthetic>` — trains the network on
   $M = 16$ synthetic sparse patterns. Demonstrates that the analytical init
   alone reaches high $F_1$; gradient training with a cosine schedule then
   improves noise robustness. Figures: `pattern`, `target_init`, `target`,
   `histogram_log`.
-- {doc}`notebooks/13_MNESIS_testing-inference` — concatenates all $M = 16$
+- {doc}`NB 13: Sequential retrieval <notebooks/13_MNESIS_testing-inference>` — concatenates all $M = 16$
   patterns in sequence with $N_\mathrm{pretime} = 50$ steps of spontaneous
   inter-trial activity; evaluates sliding-window $F_1$ to confirm selective,
   cross-interference-free retrieval. Figure: `retrieval` (plus `.mp4`).
 
 ## Robustness tests
 
-```{toctree}
-:maxdepth: 1
-
-notebooks/14_MNESIS_testing-noise
-notebooks/15_MNESIS_testing-trigger-duration
-notebooks/16_MNESIS_testing-trigger-fraction
-```
-
-- {doc}`notebooks/14_MNESIS_testing-noise` — bit-flip noise on the trigger
+- {doc}`NB 14: Noise robustness <notebooks/14_MNESIS_testing-noise>` — bit-flip noise on the trigger
   window ($p_\mathrm{flip} \in [0, 1]$), with fixed weights and, as a control,
   with a network re-trained at each noise level. The paper reports
   $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$.
   Figures: `p_flip_target`, `p_flip_score`, `p_flip_retrain_score`.
-- {doc}`notebooks/15_MNESIS_testing-trigger-duration` — truncated trigger
+- {doc}`NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>` — truncated trigger
   window; finds the minimum cue length for reliable recall. The paper reports
   $F_1 \approx 0.42$ at 75% of $D$. Figures: `trigger_time`,
   `trigger_time_score`.
-- {doc}`notebooks/16_MNESIS_testing-trigger-fraction` — partial neuron coverage
+- {doc}`NB 16: Neuron coverage <notebooks/16_MNESIS_testing-trigger-fraction>` — partial neuron coverage
   (0 to $N$ neurons silenced in the trigger). The paper reports
   $F_1 \approx 0.60$ with 87.5% of neurons active. Figures: `fraction_target`,
   `fraction_target_score`.
 
 ## Parameter scans & optimisation
 
-```{toctree}
-:maxdepth: 1
-
-notebooks/20_MNESIS_scanning-parameters
-notebooks/25_MNESIS_optuna
-```
-
-- {doc}`notebooks/20_MNESIS_scanning-parameters` — systematic one-at-a-time
+- {doc}`NB 20: Parameter scans <notebooks/20_MNESIS_scanning-parameters>` — systematic one-at-a-time
   scans over `N_pattern` ($M$), `N_time` ($T$), `num_delay` ($D$), `N_neuron`
   ($N$), `p_A`, `lif_threshold` ($\vartheta$), `p_flip`, and the `do_deconv` /
   `do_pinv` flags, with $N_\mathrm{cv} = 10$ seeds per value; produces the
   `scan_{key}` figures, of which `scan_num_delay`, `scan_N_time` and
   `scan_N_neuron` appear in the paper.
-- {doc}`notebooks/25_MNESIS_optuna` — automated hyperparameter search with
+- {doc}`NB 25: Optuna optimisation <notebooks/25_MNESIS_optuna>` — automated hyperparameter search with
   [Optuna](https://optuna.org/) over the initialisation flags, learnable
   $\beta$ / $\vartheta$, reset mechanism, optimiser, $\beta$, surrogate
   sharpness and learning rates. Its figure is displayed, not saved.
@@ -103,25 +75,13 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 
 ## Periodic motifs
 
-```{toctree}
-:maxdepth: 1
-
-notebooks/18_MNESIS_learn-periodic
-```
-
-- {doc}`notebooks/18_MNESIS_learn-periodic` — builds periodic targets, trains
+- {doc}`NB 18: Periodic motifs <notebooks/18_MNESIS_learn-periodic>` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
   noise. Its `periodic_*` figures are displayed, not saved.
 
 ## Orchestrator
 
-```{toctree}
-:maxdepth: 1
-
-notebooks/99_MNESIS_run-all
-```
-
-- {doc}`notebooks/99_MNESIS_run-all` — scripted orchestrator: purges the
+- {doc}`NB 99: Run all <notebooks/99_MNESIS_run-all>` — scripted orchestrator: purges the
   placeholder rows of interrupted scans
   ({func}`~mnesis_boilerplate.purge_unfinished_scans`), then runs the full
   notebook pipeline (10 → 25) with progress timestamps.

@@ -270,16 +270,16 @@ so rerun the notebooks for up-to-date numbers.
 
 | Experiment | Key result (paper) |
 |---|---|
-| Training (NB 11) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
-| Sequential retrieval (NB 13) | All 16 patterns retrieved without cross-interference |
-| Noise robustness (NB 14) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
-| Trigger duration (NB 15) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
-| Neuron coverage (NB 16) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
-| Delay scan (NB 20) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
-| Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
-| Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
-| Periodic memory (NB 18) | Stable periodic retrieval with dedicated robustness evaluation under progressive bit-flip noise |
-| Full orchestrator (NB 99) | Provides a single notebook entry point for sequential multi-notebook execution |
+| Training ([NB 11](src/11_MNESIS_learn-synthetic.ipynb)) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
+| Sequential retrieval ([NB 13](src/13_MNESIS_testing-inference.ipynb)) | All 16 patterns retrieved without cross-interference |
+| Noise robustness ([NB 14](src/14_MNESIS_testing-noise.ipynb)) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
+| Trigger duration ([NB 15](src/15_MNESIS_testing-trigger-duration.ipynb)) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
+| Neuron coverage ([NB 16](src/16_MNESIS_testing-trigger-fraction.ipynb)) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
+| Delay scan ([NB 20](src/20_MNESIS_scanning-parameters.ipynb)) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
+| Duration scan ([NB 20](src/20_MNESIS_scanning-parameters.ipynb)) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
+| Rate scan ([NB 20](src/20_MNESIS_scanning-parameters.ipynb)) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
+| Periodic memory ([NB 18](src/18_MNESIS_learn-periodic.ipynb)) | Stable periodic retrieval with dedicated robustness evaluation under progressive bit-flip noise |
+| Full orchestrator ([NB 99](src/99_MNESIS_run-all.ipynb)) | Provides a single notebook entry point for sequential multi-notebook execution |
 
 ---
 

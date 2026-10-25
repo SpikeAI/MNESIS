@@ -130,15 +130,15 @@ $T \in [100, 1558]$, $N \in [50, 2000]$, $p_A \in [2 \times 10^{-4}, 5 \times 10
 
 | Experiment | Key result (paper) |
 |---|---|
-| Training (NB 11) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
-| Sequential retrieval (NB 13) | All 16 patterns retrieved without cross-interference |
-| Noise robustness (NB 14) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
-| Trigger duration (NB 15) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
-| Neuron coverage (NB 16) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
-| Delay scan (NB 20) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
-| Duration scan (NB 20) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
-| Rate scan (NB 20) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
-| Periodic memory (NB 18) | Stable periodic retrieval under progressive bit-flip noise |
+| Training ({doc}`NB 11 <notebooks/11_MNESIS_learn-synthetic>`) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
+| Sequential retrieval ({doc}`NB 13 <notebooks/13_MNESIS_testing-inference>`) | All 16 patterns retrieved without cross-interference |
+| Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
+| Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
+| Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
+| Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
+| Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
+| Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
+| Periodic memory ({doc}`NB 18 <notebooks/18_MNESIS_learn-periodic>`) | Stable periodic retrieval under progressive bit-flip noise |
 
 ## Citation
 
@@ -166,6 +166,22 @@ Machine-readable citation metadata is in
 installation
 api
 experiments
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Notebooks
+
+NB 10: Generative model <notebooks/10_MNESIS_generative-model>
+NB 11: Learning synthetic motifs <notebooks/11_MNESIS_learn-synthetic>
+NB 13: Sequential retrieval <notebooks/13_MNESIS_testing-inference>
+NB 14: Noise robustness <notebooks/14_MNESIS_testing-noise>
+NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>
+NB 16: Neuron coverage <notebooks/16_MNESIS_testing-trigger-fraction>
+NB 18: Periodic motifs <notebooks/18_MNESIS_learn-periodic>
+NB 20: Parameter scans <notebooks/20_MNESIS_scanning-parameters>
+NB 25: Optuna optimisation <notebooks/25_MNESIS_optuna>
+NB 99: Run all <notebooks/99_MNESIS_run-all>
 ```
 
 ## Indices and tables
