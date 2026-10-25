@@ -4,7 +4,7 @@
 .. image:: https://img.shields.io/badge/Python-3.10%2B-blue.svg
    :target: https://www.python.org/downloads/
 .. image:: https://img.shields.io/badge/License-GPL--3.0-green.svg
-   :target: https://github.com/laurentperrinet/MNESIS/blob/main/LICENSE
+   :target: https://github.com/SpikeAI/MNESIS/blob/main/LICENSE
 .. image:: https://img.shields.io/badge/Paper-ICANN%202026-orange.svg
    :target: https://laurentperrinet.github.io/publication/perrinet-26-icann/
 ```
@@ -157,7 +157,7 @@ $T \in [100, 1558]$, $N \in [50, 2000]$, $p_A \in [2 \times 10^{-4}, 5 \times 10
 ```
 
 Machine-readable citation metadata is in
-[`CITATION.cff`](https://github.com/laurentperrinet/MNESIS/blob/main/CITATION.cff).
+[`CITATION.cff`](https://github.com/SpikeAI/MNESIS/blob/main/CITATION.cff).
 
 ```{toctree}
 :maxdepth: 2

@@ -20,7 +20,7 @@ The same `HD_SNN` framework is applied to sparse synthetic motifs and to periodi
 [`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/) · arXiv preprint [`2604.14096`](https://arxiv.org/abs/2604.14096).
 The PDF `tex/Perrinet26mnesis.pdf` is built locally from the LaTeX source (see [Build the paper](#build-the-paper)); it is git-ignored, not versioned.
 
-**Documentation:** [https://laurentperrinet.github.io/MNESIS/](https://laurentperrinet.github.io/MNESIS/) (API reference and rendered notebooks).
+**Documentation:** [https://spikeai.github.io/MNESIS/](https://spikeai.github.io/MNESIS/) (API reference and rendered notebooks).
 
 ---
 
@@ -164,7 +164,7 @@ pip install -r docs/requirements.txt && make -C docs html   # output in docs/_bu
 The build symlinks the `src/` notebooks into `docs/notebooks/` and renders them
 with their stored outputs. The Pages source must be set to "GitHub Actions"
 (repository Settings > Pages); the site is served at
-[https://laurentperrinet.github.io/MNESIS/](https://laurentperrinet.github.io/MNESIS/).
+[https://spikeai.github.io/MNESIS/](https://spikeai.github.io/MNESIS/).
 
 ---
 

@@ -197,7 +197,7 @@ Google style). `docs/_build/` and `docs/notebooks/` are git-ignored.
 
 The workflow `.github/workflows/static.yml` runs that build on every push to `main`
 and deploys `docs/_build/html` to GitHub Pages
-(<https://laurentperrinet.github.io/MNESIS/>); never commit built HTML.
+(<https://spikeai.github.io/MNESIS/>); never commit built HTML.
 
 - `docs/index.md` repeats the model equations, the variables table, the parameter
   drift note and the results of `README.md`: change both together.
