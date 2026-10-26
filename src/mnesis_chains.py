@@ -10,7 +10,7 @@ methods, and a :func:`load` helper for trained checkpoints.
 
 from mnesis_boilerplate import torch, np, nn, OrderedDict, surrogate, snn, snn_utils
 from mnesis_boilerplate import get_scores, get_cosine_schedule_with_warmup, SpikeF1scoreLoss
-from mnesis_boilerplate import flip_bits, Params
+from mnesis_boilerplate import flip_bits
 
 
 class SpikingPattern:
@@ -216,8 +216,9 @@ class HD_SNN(nn.Module):
         the estimator:
 
         - ``do_deconv``: deconvolve the LIF membrane, i.e. regress onto the
-          input current ``theta_0 * (s*(t) - beta * s*(t-1))`` rather than
-          onto the raw target spikes.
+          input current ``s*(t) - beta * s*(t-1)`` rather than onto the raw
+          target spikes; a perfect context then drives the membrane to 1,
+          a margin ``1 - lif_threshold`` above the threshold.
         - ``do_pinv``: solve exactly with the (CPU-computed) pseudo-inverse
           ``W = pinv(C) T``; otherwise use the normalised Hebbian
           cross-correlation ``T^T C / <||c||^2>``.
@@ -250,7 +251,9 @@ class HD_SNN(nn.Module):
             W_init = torch.matmul(X_pinv, targets_cpu)
             W_init = W_init.transpose(0, 1).to(contexts.device)
         else:
-            norm = (contexts * contexts).sum(dim=0).mean().clamp(min=1e-8)
+            # <||c||^2>: mean number of spikes in a context (~ N D p_A), the diagonal of the
+            # nearly diagonal Gram matrix of the contexts, which replaces its inverse
+            norm = (contexts * contexts).sum(dim=1).mean().clamp(min=1e-8)
             W_init = torch.matmul(targets.t(), contexts) / norm
 
         return W_init

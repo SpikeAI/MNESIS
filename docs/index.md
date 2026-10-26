@@ -69,7 +69,7 @@ Defaults are those of the {class}`~mnesis_boilerplate.Params` dataclass; one tim
 | $p_\mathrm{flip}$ | `p_flip` | 0.01 | probability of flipping a bit in the stochastic pattern generator |
 | — | `seed` | 2026 | seed of the random number generators |
 | $\beta$ | `lif_beta` | 0.70 | membrane decay per time bin |
-| $\vartheta$, $\vartheta_0$ | `lif_threshold` | 0.75 (membrane potential, a.u.) | firing threshold |
+| $\vartheta$ | `lif_threshold` | 0.75 (membrane potential, a.u.) | firing threshold |
 | — | `learn_beta`, `learn_threshold` | `False` | make $\beta$ and $\vartheta$ learnable |
 | — | `do_pinv`, `do_deconv` | `True` | pseudo-inverse solution and membrane deconvolution of the initialisation |
 | — | `num_epochs` | 256 | number of training epochs |
@@ -78,7 +78,7 @@ Defaults are those of the {class}`~mnesis_boilerplate.Params` dataclass; one tim
 | $\delta_1$, $\delta_2$ | `delta1`, `delta2` | 0.003, 0.00001 | complements to 1 of the optimiser coefficients (momentum, decay) |
 | $p$ | `dropout` | 0.60 | dropout probability |
 | $\alpha$ | `alpha_surrogate` | 5.0 | sharpness of the surrogate gradient (`FastSigmoid`) |
-| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of cross-validation seeds |
+| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of independent repetitions (random seeds) per value |
 
 ### Analytical initialisation
 
@@ -88,16 +88,18 @@ initialisation in {meth}`mnesis_chains.HD_SNN.get_W_init`:
 - **`do_deconv`** (default `True`) — deconvolve the membrane so the input current that
   drives neuron $j$ to a target spike at time $t$ is
 
-  $$I^*_j(t) = \vartheta_0 \bigl(s^*_j(t) - \beta \cdot s^*_j(t-1)\bigr).$$
+  $$I^*_j(t) = s^*_j(t) - \beta \cdot s^*_j(t-1).$$
 
-  Here $\vartheta_0$ is the firing threshold (`lif_threshold`). With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
+  A perfect context then drives the membrane to $1$, a margin $\delta = 1 - \vartheta = 0.25$
+  above the firing threshold $\vartheta$ (`lif_threshold`). With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
 
 - **`do_pinv`** (default `True`) — solve for $\mathbf{W}$ via the (numerically stable,
   computed on CPU) full pseudo-inverse $\mathbf{W} = \mathrm{pinv}(\mathbf{C})\,\mathbf{T}$.
   With `do_pinv = False` a Hebbian cross-correlation rule is used instead, relying on the
-  Gram-matrix approximation $\mathbf{C}\mathbf{C}^\top \approx N D p_A \mathbf{I}$:
+  Gram-matrix approximation $\mathbf{C}^\top\mathbf{C} \approx N D p_A \mathbf{I}$
+  ($\mathbf{C} \in \{0,1\}^{ND \times K}$ stacks the $K$ contexts as columns):
 
-  $$w_{i,j,d} = \frac{1}{N \cdot D \cdot p_A \cdot M} \sum_{\mu,\,t} s_i^{*(\mu)}(t-d) \cdot \bigl(s_j^{*(\mu)}(t) - \beta \cdot s_j^{*(\mu)}(t-1)\bigr).$$
+  $$w_{i,j,d} = \frac{1}{N \cdot D \cdot p_A} \sum_{\mu,\,t} s_i^{*(\mu)}(t-d) \cdot \bigl(s_j^{*(\mu)}(t) - \beta \cdot s_j^{*(\mu)}(t-1)\bigr).$$
 
 ### Training
 
