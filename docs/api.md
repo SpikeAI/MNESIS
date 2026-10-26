@@ -23,7 +23,8 @@ utilities). Documentation is generated from the docstrings via
 .. automodule:: mnesis_boilerplate
    :members: Params, pprint, printfig, flip_bits, stop, approx_equals,
              purge_unfinished_scans, get_scores, get_f1score, get_beta_errorbar, get_f1_noisy_copy,
-             get_f1_ignition, SpikeF1scoreLoss,
+             get_f1_from_ignition, get_trigger_presence, get_f1_ignition, get_f1_cascade,
+             get_recall_time, plot_recall_time, SpikeF1scoreLoss,
              get_cosine_schedule_with_warmup
    :undoc-members:
    :show-inheritance:

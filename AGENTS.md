@@ -49,8 +49,8 @@ notebooks (*.ipynb)
 
 | File | Role |
 |---|---|
-| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, `get_f1_ignition` (F1 expected from theory under trigger noise), cosine LR schedule, `purge_unfinished_scans`). |
-| `src/mnesis_chains.py` | Pattern generators (`SpikingPattern`, `StochasticSpikingPattern`) and the `HD_SNN` class (`forward_pass`, `get_W_init`, `update_weight`, `learn_model`); also a `load()` helper for trained checkpoints. |
+| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, `get_f1_ignition` (F1 expected from theory for a noisy, truncated or lesioned trigger: the replay is a cascade decided by its first evoked spike), `get_f1_cascade` (the same cascade, simulated), `get_recall_time` / `plot_recall_time` (recall of each motif against time), cosine LR schedule, `purge_unfinished_scans`). |
+| `src/mnesis_chains.py` | Pattern generators (`SpikingPattern`, `StochasticSpikingPattern`) and the `HD_SNN` class (`forward_pass`, with `feedback=False` for the open-loop control, `get_W_init`, `update_weight`, `get_recall_time`, `learn_model`); also a `load()` helper for trained checkpoints. |
 
 Notebooks (`src/*.ipynb`) are numbered simple → complex, each loading cached
 artifacts from the previous one. They **import** from the two modules — they do
@@ -262,9 +262,9 @@ plot.
 | `ssp_frozen_pattern`, `ssp_two_frozen_pattern` | 10 |
 | `pattern`, `target_init`, `target`, `histogram_log` | 11 |
 | `retrieval` (+ `.mp4`) | 13 |
-| `p_flip_target`, `p_flip_score`, `p_flip_retrain_score` | 14 |
-| `trigger_time`, `trigger_time_score` | 15 |
-| `fraction_target`, `fraction_target_score` | 16 |
+| `p_flip_target`, `p_flip_score`, `p_flip_retrain_score`, `p_flip_cascade` | 14 |
+| `trigger_time`, `trigger_time_score`, `trigger_time_cascade` | 15 |
+| `fraction_target`, `fraction_target_score`, `fraction_target_cascade` | 16 |
 | `scan_{key}` (one per scanned parameter) | 20 |
 | `periodic_scores` | 18 |
 | other `periodic_*` / `optuna` (displayed only, `figpath=None`) | 18 / 25 |
@@ -291,7 +291,7 @@ not a stray character.
 ## Conventions & gotchas
 
 - **Parameter drift.** As of the reconciliation run `2026-09-07`, the paper
-  methods text (β = 0.7, τ ≈ 2.8 steps; ϑ₀ = 0.75, δ = 0.25; p_flip = 0.01;
+  methods text (β = 0.7, τ ≈ 2.8 steps; ϑ = 0.75, δ = 0.25; p_flip = 0.01;
   FastSigmoid α = 5; adadelta; η 40→0.4 mLR; dropout 0.6) matches the
   `Params` production defaults in `mnesis_boilerplate.py`. Older documents
   may still cite camera-ready values (β = 0.8, α = 12, SGD, dropout 0.10);
@@ -303,7 +303,12 @@ not a stray character.
   seeded-cue / frozen-target protocol (2026-10-26): their weights were initialised
   on a noisy realisation and trained with unseeded cues, and their scan rows were
   scored against an unseeded noisy realisation. The cache key is the `datetag`
-  alone, so rerunning with it reuses (or appends to) these results. The module
+  alone, so rerunning with it reuses (or appends to) these results. The seed
+  streams changed again on 2026-10-26 at 18:54 (commit `5674e00`): `flip_bits`
+  (stream 1) and the spontaneous pad of `get_input_spikes` (stream 2) now derive
+  their generator state from the seed, which before collided with the frozen
+  motif (the cue lost every spike of the motif on CPU, and the pad copied its
+  first entries on every device). Any cache written before that time holds stale cues and pads. The module
   deliberately keeps running with `datetag = '2026-09-07'`
   (`mnesis_boilerplate.py`): **do not bump it** on your own initiative. The
   `2026-10-26` line next to it stays commented out, and 2026-10-26 is the date of

@@ -45,25 +45,34 @@ build — run them yourself as described in {doc}`installation`).
   with the network fine-tuned at each noise level. The paper reports
   $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$. Both
   score figures overlay the $F_1$ expected from theory for a motif-wise
-  ignition of the replay, which starts only if a fraction
+  ignition of the replay. The replay is a cascade, a positive feedback loop
+  decided by its first evoked spike, which fires only if a fraction
   $\vartheta$ of the $\approx p_A N D$ trigger spikes supporting it survive
-  (`get_f1_ignition`, with no fitted parameter).
-  Figures: `p_flip_target`, `p_flip_score`, `p_flip_retrain_score`.
+  (`get_f1_ignition`, with no fitted parameter); a simulation of the whole
+  cascade (`get_f1_cascade`) gives the same curve. The recall of each motif
+  against time shows the bistability (ignited or silent), and an open-loop
+  control (`forward_pass(..., feedback=False)`) shows that the replay is
+  sustained by the recurrence. Figures: `p_flip_target`, `p_flip_score`,
+  `p_flip_retrain_score`, `p_flip_cascade`.
 - {doc}`NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>` — truncated trigger
   window; finds the minimum cue length for reliable recall. The paper reports
-  $F_1 \approx 0.42$ at 75% of $D$. Figures: `trigger_time`,
-  `trigger_time_score`.
+  $F_1 \approx 0.42$ at 75% of $D$. The same cascade model, with the last
+  `N_trigger_time` bins of the window shown, predicts the curve: the support of
+  the first evoked spike is more recent than a whole window, and so better
+  shown than the fraction `N_trigger_time / num_delay`. Figures: `trigger_time`,
+  `trigger_time_score`, `trigger_time_cascade`.
 - {doc}`NB 16: Neuron coverage <notebooks/16_MNESIS_testing-trigger-fraction>` — partial neuron coverage
   (0 to $N$ neurons silenced in the trigger). The paper reports
-  $F_1 \approx 0.60$ with 87.5% of neurons active. Figures: `fraction_target`,
-  `fraction_target_score`.
+  $F_1 \approx 0.60$ with 87.5% of neurons active. The same cascade model, with
+  a fraction `1 - n / N` of the neurons shown, predicts the curve. Figures:
+  `fraction_target`, `fraction_target_score`, `fraction_target_cascade`.
 
 ## Parameter scans & optimisation
 
 - {doc}`NB 20: Parameter scans <notebooks/20_MNESIS_scanning-parameters>` — systematic one-at-a-time
   scans over `N_pattern` ($M$), `N_time` ($T$), `num_delay` ($D$), `N_neuron`
   ($N$), `p_A`, `lif_threshold` ($\vartheta$), `p_flip`, and the `do_deconv` /
-  `do_pinv` flags, with $N_\mathrm{cv} = 10$ seeds per value; produces the
+  `do_pinv` flags, with $10$ independent runs (random seeds) per value; produces the
   `scan_{key}` figures, of which `scan_num_delay`, `scan_N_time` and
   `scan_N_neuron` appear in the paper.
 - {doc}`NB 25: Optuna optimisation <notebooks/25_MNESIS_optuna>` — automated hyperparameter search with
