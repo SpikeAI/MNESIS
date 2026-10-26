@@ -55,7 +55,7 @@ prefixed by the current `datetag` (the batch date, ISO 8601):
 | `{datetag}_trigger_time.npz` | 15 | $F_1$ versus trigger duration |
 | `{datetag}_N_neurons.npz` | 16 | $F_1$ versus number of silenced trigger neurons |
 | `{datetag}_periodic.pth`, `{datetag}_periodic_spikes.pth`, `{datetag}_periodic_spikes_noisy.pth` | 18 | Periodic-memory weights and retrieved rasters (clean / noisy) |
-| `{datetag}_periodic-with-noise.npz` | 18 | Periodic-memory robustness curves across noise levels and time chunks |
+| `{datetag}_periodic-with-noise_N_period={N_period}.npz` | 18 | Periodic-memory robustness: $F_1$ per period of free replay for each noise level (`p_flip`, `scores_np`) |
 | `{datetag}_scan_{key}.json` (+ `.lock`) | 20 | Parameter sweep results (`key`, `i_cv`, `loss`, `time` per row) |
 | `{datetag}_optuna.sqlite3` | 25 | Optuna study (synthetic motifs) |
 

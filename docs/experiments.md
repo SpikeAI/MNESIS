@@ -78,7 +78,9 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 
 - {doc}`NB 18: Periodic motifs <notebooks/18_MNESIS_learn-periodic>` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
-  noise. Its `periodic_*` figures are displayed, not saved.
+  noise. Only `periodic_scores` ($F_1$ per period of free replay, one curve per
+  $p_\mathrm{flip}$) is saved, for the paper; the other `periodic_*` figures are
+  displayed, not saved.
 
 ## Orchestrator
 

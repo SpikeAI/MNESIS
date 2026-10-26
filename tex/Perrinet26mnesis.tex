@@ -272,9 +272,22 @@ Taken together, the  scans quantitatively validate the theoretical framework: de
 
 % not in ICANN :
 %%%-----------------------------------------------------------------
-% \subsection{Retrieval of periodic spike patterns}
+\subsection{Retrieval of periodic spike patterns}
+\label{sec:periodic}
 %%%-----------------------------------------------------------------
 %  this section reflects what is computed in 18_MNESIS_learn-periodic.ipynb
+
+The working memory task above has a natural end: once the last context window of a motif has been replayed, nothing in the stored chain predicts further activity, and the network falls silent. A simple modification of the motifs turns this finite chain into an endless one. For each frozen motif, we copied its trigger window onto its last $D$ time steps, that is, $P^{(\mu)}[\cdot,\, T-D+t] = P^{(\mu)}[\cdot,\, t]$ for $0 \le t < D$, the same wrap being applied to each noisy realisation after the bit flips of Equation~\ref{eq:pattern_generation}. The last context window of a motif is then identical to its trigger window, so that a faithful replay of the end of the motif re-cues its beginning: the chain of overlapping Spiking Motifs closes on itself, with a period of $T - D = 959$ steps. The network was trained exactly as in the main experiment, with the same parameters and on a single period of $T = 1000$ steps, so that it never experienced the transition from one period to the next during learning. Cued by a noisy realisation of the trigger window ($p_\mathrm{flip} = 0.01$), the replay of the first period reached an $F_1$ score of $\approx 0.850$ (precision $\approx 0.875$, recall $\approx 0.827$).
+
+We then cued the network with the noise-free trigger window and let it run freely for $30$ periods ($28\,770$ steps, about $29\,\mathrm{s}$), scoring each period separately against the frozen motif. The first period reached an $F_1$ score of $\approx 0.880$ (precision $\approx 0.940$, recall $\approx 0.827$), and from the second period onwards the score stayed at $\approx 0.829$ (precision $\approx 0.934$, recall $\approx 0.746$) without any further decline. The evoked rasters were in fact strictly identical from one period to the next: the network settled into an exact limit cycle. The drop in recall between the first two periods reflects an all-or-none selection at the first closure of the cycle. For $12$ of the $M = 16$ motifs, the replay reached the end of the motif and re-cued itself, after which it was sustained indefinitely; for the $4$ remaining motifs, the replay had already faded within the first period (from $28$ to $92$ evoked spikes) and these motifs stayed silent afterwards. This is consistent with the ignition picture of Section~\ref{sec:robustness}, and with deterministic recurrent dynamics: once the activity over the last $D$ steps of a period matches that of the previous period, the next period is replayed identically. As a consequence, errors do not accumulate from one period to the next; they are settled once and for all during the first period.
+
+Finally, we combined this long-horizon replay with the trigger-window noise of Section~\ref{sec:robustness}: the trigger window was corrupted by balanced bit flips with $p_\mathrm{flip} \in [0, 1]$ ($14$ levels), after which the network ran freely for $100$ periods, each period being scored against the frozen motif (Figure~\ref{fig:periodic}).
+% TODO: describe the noise sweep results (periodic_scores) once notebook 18 has completed its run
+% TODO: (F1 of the first and of the stationary periods as a function of p_flip, and the noise level at which the cycle is lost)
+
+%%%-----------------------------------------------------------------
+\input{figure_periodic}
+%%%-----------------------------------------------------------------
 %%%----------------------------------------------------------------- 
 \section{Discussion}
 %%%-----------------------------------------------------------------

@@ -1,0 +1,11 @@
+%!TeX encoding = UTF-8 Unicode
+%!TeX spellcheck = en-UK
+% !TeX root = Perrinet26mnesis.tex
+% -*- coding: UTF-8; -*-
+%%%-----------------------------------------------------------------
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{periodic_scores.pdf}
+\caption{Free replay of periodic motifs over long horizons. The motifs are made periodic by copying their trigger window (the first $D=41$ steps) onto their last $D$ steps, so that the chain of Spiking Motifs closes on itself with a period of $T-D=959$ steps. After a single trigger window, corrupted by balanced bit flips with probability $p_\mathrm{flip} \in [0, 1]$ ($14$ levels, one curve per level), the network runs freely for $100$ periods (about $96\,\mathrm{s}$); each period is scored ($F_1$ score averaged over the $M=16$ motifs) against the frozen motif.}\label{fig:periodic}
+\end{figure}
+%%%-----------------------------------------------------------------

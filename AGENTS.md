@@ -140,7 +140,7 @@ jupyter nbconvert --to notebook --execute --inplace 99_MNESIS_run-all.ipynb
 | `Perrinet26mnesis.tex` | Main paper (`\documentclass{scrartcl}`). `\input{metadata}` + biblatex (`\addbibresource{mnesis.bib}`, `\printbibliography`). Uses `fontspec` — **must be built with `lualatex`**, not `pdflatex`. |
 | `metadata.tex` | `\input` fragment (author/affiliation/AI-statement macros); **no** `\documentclass`, do not compile standalone. |
 | `tikz_izhikevich.tex`, `tikz_snntorch.tex` | Standalone TikZ figures (`\documentclass{standalone}`); compiled to their own PDFs in `tex/` (the PDFs are versioned). |
-| `figure_*.tex` | `\input` figure environments (caption + `\label`). `figure_izhikevich.tex` and `figure_snntorch.tex` wrap the TikZ PDFs of `tex/` (`figure_snntorch.tex` also includes `pattern.pdf`); `figure_target.tex`, `figure_retrieval.tex`, `figure_robustness.tex` (→ `fig:noise`) and `figure_scan.tex` take their graphics from `../figures/`. |
+| `figure_*.tex` | `\input` figure environments (caption + `\label`). `figure_izhikevich.tex` and `figure_snntorch.tex` wrap the TikZ PDFs of `tex/` (`figure_snntorch.tex` also includes `pattern.pdf`); `figure_target.tex`, `figure_retrieval.tex`, `figure_robustness.tex` (→ `fig:noise`), `figure_scan.tex` and `figure_periodic.tex` (→ `fig:periodic`) take their graphics from `../figures/`. |
 | `mnesis.bib` | Bibliography database. |
 
 The main paper resolves experiment figures through `\graphicspath{{../figures/}}`
@@ -266,7 +266,8 @@ plot.
 | `trigger_time`, `trigger_time_score` | 15 |
 | `fraction_target`, `fraction_target_score` | 16 |
 | `scan_{key}` (one per scanned parameter) | 20 |
-| `periodic_*` / `optuna` (displayed only, `figpath=None`) | 18 / 25 |
+| `periodic_scores` | 18 |
+| other `periodic_*` / `optuna` (displayed only, `figpath=None`) | 18 / 25 |
 
 `printfig` overwrites existing files by default (`do_overwrite=True`) and saves
 the exact `fig_width` x `fig_height` canvas (`bbox=None`, constrained layout), so
