@@ -290,6 +290,16 @@ not a stray character.
    "autocorrect" code defaults to match stale prose** — consult `docs/index.md` /
    `tex/Perrinet26mnesis.pdf` for the exact value a given figure used.
   Each notebook may also override defaults with its own local `opt_dict`.
+- **Cache protocol change.** The caches of `datetag = 2026-09-07` predate the
+  seeded-cue / frozen-target protocol (2026-10-26): their weights were initialised
+  on a noisy realisation and trained with unseeded cues, and their scan rows were
+  scored against an unseeded noisy realisation. The cache key is the `datetag`
+  alone, so rerunning with it reuses (or appends to) these results. The module
+  deliberately keeps running with `datetag = '2026-09-07'`
+  (`mnesis_boilerplate.py`): **do not bump it** on your own initiative. The
+  `2026-10-26` line next to it stays commented out, and 2026-10-26 is the date of
+  the protocol change, not the current batch; uncommenting that line is what
+  recomputes everything consistently, when the maintainer asks for it.
 - **Bibliography toolchain.** The paper `.tex` file was migrated from `natbib`/`bibtex` to `biblatex`/`biber` (updates to `Perrinet26mnesis.tex`: replace `\usepackage{natbib}` with `\usepackage[style=numeric, sorting=none]{biblatex}` + `\addbibresource{mnesis.bib}`, and replace `\bibliographystyle{plainnat}\bibliography{mnesis}` with `\addbibresource{mnesis.bib}\printbibliography`; bibliography line `%!BIB TS-program = bibtex` → `%!BIB TS-program = biber). Do not revert these changes.
 - The analytical initialisation in `HD_SNN.get_W_init` is controlled by two flags:
   `do_pinv` (default `True`; `False` switches to the Hebbian cross-correlation rule)
