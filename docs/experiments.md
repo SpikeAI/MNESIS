@@ -34,8 +34,9 @@ build — run them yourself as described in {doc}`installation`).
   `histogram_log`.
 - {doc}`NB 13: Sequential retrieval <notebooks/13_MNESIS_testing-inference>` — concatenates all $M = 16$
   patterns in sequence, separated by silent inter-trial intervals
-  ($4 N_\mathrm{pretime} = 200$ steps on each side, no spontaneous activity); evaluates sliding-window $F_1$ to confirm selective,
-  cross-interference-free retrieval. Figure: `retrieval` (plus `.mp4`).
+  ($4 N_\mathrm{pretime} = 200$ steps on each side, no spontaneous activity); evaluates the $F_1$ score in consecutive
+  60-step windows against the frozen motifs: 12 of the 16 motifs are replayed to the end, while the
+  replay of the other 4 breaks down after about 200–600 steps. Figure: `retrieval` (plus `.mp4`).
 
 ## Robustness tests
 
