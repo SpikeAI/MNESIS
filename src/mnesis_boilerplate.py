@@ -249,6 +249,15 @@ def flip_bits(a, p_flip, seed=None, verbose=False):
     ``p_flip``, by a fresh Bernoulli draw of rate ``a.mean()``, so the
     expected spike rate is preserved while the pattern is perturbed.
 
+    Args:
+        a (torch.Tensor): binary tensor to perturb.
+        p_flip (float): probability of redrawing an entry (dimensionless).
+        seed (int): seed of the flips; ``None`` draws a fresh random seed.
+            The generator is seeded with a value derived from ``seed``, not
+            with ``seed`` itself, so that a flip seed equal to the seed of the
+            frozen motif does not read the same uniform draws.
+        verbose (bool): if ``True``, report the number of flipped bits.
+
     Returns:
         torch.Tensor: A new tensor of the same shape as ``a``.
     """
@@ -256,7 +265,10 @@ def flip_bits(a, p_flip, seed=None, verbose=False):
     if seed is None:
         seed = generator.seed()
     else:
-        generator.manual_seed(seed)
+        # The frozen motif is drawn as U < p_A with a generator seeded by opt.seed: seeded
+        # with the same value, the mask U < p_flip (p_flip > p_A) would flip every spike of
+        # the motif. Deriving the generator state from the seed decorrelates the two streams.
+        generator.manual_seed(int(np.random.SeedSequence([int(seed), 1]).generate_state(1)[0]))
     mask = torch.bernoulli(torch.ones_like(a) * p_flip, generator=generator)
     flipped = torch.bernoulli(torch.ones_like(a) * a.mean(), generator=generator)
     out = torch.where(mask == 1., flipped, a)
@@ -408,8 +420,9 @@ def get_f1_noisy_copy(p_flip, p_A):
     """
     return 1 - np.asarray(p_flip, dtype=float) * (1 - p_A)
 
-def get_f1_ignition(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0=1., recall_0=1.):
-    """F1 score expected when a noisy trigger ignites, or not, the replay of each motif.
+def get_f1_ignition(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0=1., recall_0=1.,
+                    fraction=1., deficit_steps=0.):
+    """F1 score expected when a degraded trigger ignites, or not, the replay of each motif.
 
     Mean-field model of the pseudo-inverse readout (:meth:`mnesis_chains.HD_SNN.get_W_init`):
     each spike of a motif is supported by the ``K`` spikes of that motif in its
@@ -418,20 +431,34 @@ def get_f1_ignition(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0
     minimum-norm solution gives these supporting spikes equal weights, so the
     membrane reaches 1 when all of them are present and ``k / K`` when only
     ``k`` of them are; a spurious spike of the trigger falls on a near-zero
-    weight, as the motifs are sparse. Each supporting spike of the trigger
-    survives the flips with probability ``q = 1 - p_flip (1 - p_A)``.
+    weight, as the motifs are sparse. A supporting spike is present in the
+    trigger with probability ``q = fraction (1 - p_flip (1 - p_A))``: it must
+    lie in the part of the window that the trigger shows (``fraction``: the
+    shown bins of a truncated trigger, or the active neurons of a lesioned
+    one) and survive the flips.
 
     The first evoked spikes are driven by the trigger alone and, ``lam`` being
-    small, they share the same few supporting spikes: the replay of a motif
-    therefore ignites as a whole if ``k >= ceil(lif_threshold K)`` (it then
-    sustains itself, the noise-free motif being a stable fixed point) and
-    dies out otherwise, with an ignition probability
+    small, they share the same few supporting spikes: such a spike is emitted
+    if ``k >= ceil(lif_threshold K)``, with probability
 
-        ``R = sum_{K >= 1} Poisson(K; lam) P(Binomial(K, q) >= ceil(lif_threshold K))``.
+        ``Phi(q) = sum_{K >= 1} Poisson(K; lam) P(Binomial(K, q) >= ceil(lif_threshold K))``,
 
-    An ignited motif is replayed with the noise-free precision and recall, a
-    silent one only adds false negatives, so that summed over the motifs
-    ``F1 = 2 R recall_0 / (1 + R recall_0 / precision_0)``.
+    and the replay of a motif ignites as a whole (it then sustains itself, the
+    noise-free motif being a stable fixed point) or dies out. When the missing
+    spikes are scattered (flips, lesioned neurons), the first evoked spikes
+    soon replace the degraded trigger in the window and the ignition
+    probability is ``R = Phi(q)``. When they form a block in time (a trigger
+    reduced to its last ``L`` bins), the gap at the start of the window stays
+    in it for ``num_delay - L`` more steps;
+    as a heuristic, the replay must then also emit without any failure the
+    Poisson number (mean ``p_A N_neuron deficit_steps``) of spikes evoked
+    during this deficit, so that ``R = Phi(q) exp(-p_A N_neuron deficit_steps
+    (1 - Phi(q)))``. Counting a single missed spike as a failure of the whole
+    replay, this heuristic underestimates the F1 score near the transition.
+
+    An ignited motif is replayed with the precision and recall of the intact
+    trigger, a silent one only adds false negatives, so that summed over the
+    motifs ``F1 = 2 R recall_0 / (1 + R recall_0 / precision_0)``.
 
     Args:
         p_flip (float or np.ndarray): bit-flip probability of the trigger (dimensionless).
@@ -440,20 +467,25 @@ def get_f1_ignition(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0
         num_delay (int): width of the spiking-motif window (time bins).
         lif_threshold (float): firing threshold, relative to the membrane
             potential reached on the motif (dimensionless).
-        precision_0 (float): precision of the replay at ``p_flip = 0``.
-        recall_0 (float): recall of the replay at ``p_flip = 0``.
+        precision_0 (float): precision of the replay with the intact trigger.
+        recall_0 (float): recall of the replay with the intact trigger.
+        fraction (float or np.ndarray): fraction of the spiking-motif window
+            shown by the trigger (dimensionless, 1 for a full trigger).
+        deficit_steps (float or np.ndarray): number of steps during which the
+            replay runs on the same deficit (time bins, 0 for scattered losses).
 
     Returns:
-        np.ndarray: expected F1 score, shaped like ``p_flip``.
+        np.ndarray: expected F1 score, shaped like the broadcast of ``p_flip``,
+        ``fraction`` and ``deficit_steps``.
     """
-    p_flip = np.asarray(p_flip, dtype=float)
     lam = p_A * N_neuron * num_delay
     # K = 0 is left out: with no supporting spike, the bias-free readout never fires
     K = np.arange(1, int(lam + 10 * np.sqrt(lam)) + 10)
     # rounding first, so that e.g. 0.75 * 4 = 3 is not pushed to 4 by a float error
     k_min = np.ceil(np.round(lif_threshold * K, 9))
-    q = 1 - p_flip[..., None] * (1 - p_A)
-    R = np.sum(stats.poisson.pmf(K, lam) * stats.binom.sf(k_min - 1, K, q), axis=-1)
+    q = np.asarray(fraction, dtype=float) * (1 - np.asarray(p_flip, dtype=float) * (1 - p_A))
+    Phi = np.sum(stats.poisson.pmf(K, lam) * stats.binom.sf(k_min - 1, K, q[..., None]), axis=-1)
+    R = Phi * np.exp(- p_A * N_neuron * np.asarray(deficit_steps, dtype=float) * (1 - Phi))
     return 2 * R * recall_0 / (1 + R * recall_0 / precision_0)
 
 class SpikeF1scoreLoss(nn.Module):

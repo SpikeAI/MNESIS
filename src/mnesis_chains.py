@@ -269,9 +269,19 @@ class HD_SNN(nn.Module):
         """Build the trigger input spikes for the network.
 
         The input concatenates a ``N_pretime`` chunk of spontaneous
-        Bernoulli activity at rate ``p_A``, then the first
-        ``N_trigger_time`` steps of the target as the cue; any remaining
-        time bins stay silent. The total length is ``N_time + 2*N_pretime``.
+        Bernoulli activity at rate ``p_A``, then the trigger window of
+        ``num_delay`` steps, which shows the last ``N_trigger_time`` steps
+        of its spiking-motif window (target steps ``num_delay -
+        N_trigger_time`` to ``num_delay - 1``); its first ``num_delay -
+        N_trigger_time`` steps prolong the spontaneous activity. Any
+        remaining time bins stay silent. The total length is
+        ``N_time + 2*N_pretime``.
+
+        A partial trigger is aligned on the end of the window because the
+        readout is only trained on complete spiking-motif windows, which
+        end where the replay starts: the partial window shown to the first
+        evoked step is then a subset of a trained context, not a context
+        shifted into the spontaneous activity.
 
         Args:
             target: The memorised pattern of shape
@@ -279,8 +289,9 @@ class HD_SNN(nn.Module):
             p_A: Spontaneous firing rate; defaults to ``opt.p_A``.
             N_pretime: Length of the spontaneous prefix; defaults to
                 ``opt.N_pretime``.
-            N_trigger_time: Length of the cue window; defaults to
-                ``opt.num_delay``.
+            N_trigger_time: Number of steps of the cue, taken at the end
+                of the trigger window (time bins, ``0 <= N_trigger_time <=
+                num_delay``); defaults to ``opt.num_delay`` (full trigger).
             N_time: Length of the memory stretch; defaults to ``opt.N_time``.
             seed: Seed for the spontaneous activity; ``None`` draws from the
                 global ``torch`` generator (seeded by ``Params``).
@@ -293,13 +304,16 @@ class HD_SNN(nn.Module):
         if N_pretime is None: N_pretime = self.opt.N_pretime
         if N_trigger_time is None: N_trigger_time = self.opt.num_delay
         if N_time is None: N_time = self.opt.N_time
+        assert 0 <= N_trigger_time <= self.opt.num_delay, f"N_trigger_time={N_trigger_time} must lie in [0, num_delay={self.opt.num_delay}]"
         generator = None if seed is None else torch.Generator().manual_seed(int(seed))
+        # first step of the cue: the spontaneous activity runs up to it
+        N_start = N_pretime + self.opt.num_delay - N_trigger_time
 
         input_spikes = torch.zeros((self.opt.N_pattern, self.opt.N_neuron, N_time+2*N_pretime))
-        # spontaneous activity before the trigger window
-        input_spikes[:, :, :N_pretime] = torch.bernoulli(p_A * torch.ones((self.opt.N_pattern, self.opt.N_neuron, N_pretime)), generator=generator)
-        # the trigger window, which is the target pattern for the first milliseconds
-        input_spikes[:, :, N_pretime:(N_pretime+N_trigger_time)] = target[:, :, :N_trigger_time]
+        # spontaneous activity before the cue (same draw as before for a full trigger)
+        input_spikes[:, :, :N_start] = torch.bernoulli(p_A * torch.ones((self.opt.N_pattern, self.opt.N_neuron, N_start)), generator=generator)
+        # the cue: the last N_trigger_time steps of the spiking-motif window
+        input_spikes[:, :, N_start:(N_pretime+self.opt.num_delay)] = target[:, :, (self.opt.num_delay-N_trigger_time):self.opt.num_delay]
         return input_spikes.to(self.opt.device).detach()
 
     def learn_model(self, verbose=True):
