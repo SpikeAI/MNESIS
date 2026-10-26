@@ -207,40 +207,21 @@ marimo/_lsp/
 __marimo__/
 
 # my stuff
-Perrinet26mnesis.aux
-Perrinet26mnesis.bbl
-Perrinet26mnesis.blg
-Perrinet26mnesis.out
-Perrinet26mnesis.synctex.gz
 /cached_data
-Perrinet26mnesis.synctex(busy)
-tex/Perrinet26mnesis.aux
-tex/Perrinet26mnesis.bbl
-tex/Perrinet26mnesis.blg
-tex/Perrinet26mnesis.pdf
-tex/Perrinet26mnesis.synctex.gz
-tex/Perrinet26mnesis.tex
-tex/Perrinet26mnesis_copy.tex
-tex/Perrinet26mnesis_copy.aux
-tex/Perrinet26mnesis_copy.bbl
-tex/Perrinet26mnesis_copy.blg
-tex/Perrinet26mnesis_copy.pdf
-tex/Perrinet26mnesis_copy.synctex.gz
-tex/Perrinet26mnesis.fdb_latexmk
-tex/Perrinet26mnesis.fls
-tex/metadata.aux
-tex/metadata.fdb_latexmk
-tex/metadata.fls
-tex/tikz_izhikevich.aux
-tex/tikz_izhikevich.bbl
-tex/tikz_izhikevich.blg
-tex/tikz_izhikevich.synctex.gz
-tex/*.synctex.gz
-tex/tikz_snntorch.aux
-tex/Perrinet26mnesis.pdf
-tex/Perrinet26mnesis.pdf
-tex/Perrinet26mnesis.pdf
-tex/Perrinet26mnesis.bcf
-tex/Perrinet26mnesis.run.xml
 CLAUDE.md
-tex/Perrinet26mnesis.bbl-SAVE-ERROR
+
+# LaTeX build byproducts (lualatex + biber); the TikZ PDFs of tex/ stay versioned
+*.aux
+*.bbl
+*.bbl-SAVE-ERROR
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.run.xml
+*.synctex.gz
+*.synctex(busy)
+tex/Perrinet26mnesis.pdf
+# scratch copy of the paper used to check figure placement
+tex/*_copy.*
