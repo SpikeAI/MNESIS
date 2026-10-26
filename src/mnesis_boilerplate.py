@@ -24,6 +24,7 @@ from snntorch import utils as snn_utils
 import snntorch.spikeplot as splt
 from tqdm import trange
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib.figure import SubplotParams
 import seaborn as sns
@@ -334,6 +335,40 @@ def get_f1score(pred, target, epsilon=1e-12):
     """
     _, _, f1_score = get_scores(pred, target, epsilon=epsilon)
     return f1_score
+
+def get_beta_errorbar(scores, quantiles=(0.05, 0.95), axis=1):
+    """Mean and asymmetric error bars of repeated scores bounded in [0, 1].
+
+    An F1 score lives in [0, 1], so a symmetric mean +/- std bar can cross
+    the bounds; instead a beta distribution is fitted to the repetitions by
+    the method of moments (mean ``m``, variance ``v``):
+    ``k = m (1 - m) / v - 1``, ``a = m k``, ``b = (1 - m) k``, and the bars
+    span its ``quantiles``. Where no beta fit exists (``v = 0``, e.g. all
+    repetitions at F1 = 0, or ``k <= 0`` for data piled at 0 and 1), the
+    empirical quantiles are used instead (equal to ``m`` when ``v = 0``).
+
+    Args:
+        scores (np.ndarray): repeated scores in [0, 1], repetitions along ``axis``.
+        quantiles (tuple): lower and upper quantiles of the error bars.
+        axis (int): axis holding the repetitions.
+
+    Returns:
+        tuple: (mean, yerr), ready for ``ax.errorbar(x, mean, yerr=yerr)``;
+        ``yerr`` has shape ``(2, ...)``: distances from the mean down to the
+        lower quantile and up to the upper one.
+    """
+    m = scores.mean(axis=axis)
+    v = scores.var(axis=axis) # biased variance, guarantees v <= m (1 - m)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        k = m * (1 - m) / v - 1
+    fit = (v > 0) & (k > 0)
+    q = np.quantile(scores, quantiles, axis=axis)
+    for i, quantile in enumerate(quantiles):
+        q[i][fit] = stats.beta.ppf(quantile, m[fit] * k[fit], (1 - m[fit]) * k[fit])
+    # a strongly skewed beta can put a quantile on the wrong side of the mean;
+    # clip so that errorbar never receives a negative length
+    yerr = np.clip(np.stack([m - q[0], q[1] - m]), 0, None)
+    return m, yerr
 
 class SpikeF1scoreLoss(nn.Module):
     """Training loss ``L = 1 - F1`` between predicted and target spikes."""
