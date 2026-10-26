@@ -43,7 +43,7 @@ The numbered notebooks in `src/` run from simple to complex; each one loads the 
 | 10 | [Generative model](https://spikeai.github.io/MNESIS/notebooks/10_MNESIS_generative-model.html) | Frozen and stochastic spiking motifs |
 | 11 | [Learning synthetic motifs](https://spikeai.github.io/MNESIS/notebooks/11_MNESIS_learn-synthetic.html) | Analytical initialisation and training on $M = 16$ motifs |
 | 13 | [Sequential retrieval](https://spikeai.github.io/MNESIS/notebooks/13_MNESIS_testing-inference.html) | Retrieval of the $M$ motifs in sequence |
-| 14 | [Noise robustness](https://spikeai.github.io/MNESIS/notebooks/14_MNESIS_testing-noise.html) | Bit-flip noise in the trigger window |
+| 14 | [Noise robustness](https://spikeai.github.io/MNESIS/notebooks/14_MNESIS_testing-noise.html) | Bit-flip noise in the trigger window, against the $F_1$ expected from theory |
 | 15 | [Trigger duration](https://spikeai.github.io/MNESIS/notebooks/15_MNESIS_testing-trigger-duration.html) | Truncated trigger window |
 | 16 | [Neuron coverage](https://spikeai.github.io/MNESIS/notebooks/16_MNESIS_testing-trigger-fraction.html) | Neurons silenced in the trigger |
 | 18 | [Periodic motifs](https://spikeai.github.io/MNESIS/notebooks/18_MNESIS_learn-periodic.html) | Learning and retrieval of periodic memories |
