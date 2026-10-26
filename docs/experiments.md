@@ -93,7 +93,7 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 
 All saved figures cited above are written by the notebooks into `figures/` (in
 pdf, png and svg, versioned in the repository) through
-{func}`~mnesis_boilerplate.printfig`, which only overwrites an existing file when
-`DEBUG > 1`. The paper reads them from there; its captions in `tex/figure_*.tex`
+{func}`~mnesis_boilerplate.printfig`, which overwrites existing files by default
+at the exact size the paper prints them. The paper reads them from there; its captions in `tex/figure_*.tex`
 use the same colour convention as the raster legend — see {doc}`installation` to
 reproduce them.
