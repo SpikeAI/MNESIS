@@ -294,7 +294,11 @@ class HD_SNN(nn.Module):
                 num_delay``); defaults to ``opt.num_delay`` (full trigger).
             N_time: Length of the memory stretch; defaults to ``opt.N_time``.
             seed: Seed for the spontaneous activity; ``None`` draws from the
-                global ``torch`` generator (seeded by ``Params``).
+                global ``torch`` generator (seeded by ``Params``). As in
+                :func:`~mnesis_boilerplate.flip_bits`, the generator is seeded
+                with a value derived from ``seed`` (on a stream of its own),
+                so that a seed equal to the seed of the frozen motif does not
+                replay its uniform draws as spontaneous activity.
 
         Returns:
             torch.Tensor: Detached input spikes of shape
@@ -305,7 +309,10 @@ class HD_SNN(nn.Module):
         if N_trigger_time is None: N_trigger_time = self.opt.num_delay
         if N_time is None: N_time = self.opt.N_time
         assert 0 <= N_trigger_time <= self.opt.num_delay, f"N_trigger_time={N_trigger_time} must lie in [0, num_delay={self.opt.num_delay}]"
-        generator = None if seed is None else torch.Generator().manual_seed(int(seed))
+        # The frozen motif is drawn with a generator seeded by opt.seed: seeded with the same
+        # value, the Bernoulli draw of the pad would copy the first entries of the motif. The
+        # stream index 2 also keeps it apart from the flips of the cue (stream 1, flip_bits).
+        generator = None if seed is None else torch.Generator().manual_seed(int(np.random.SeedSequence([int(seed), 2]).generate_state(1)[0]))
         # first step of the cue: the spontaneous activity runs up to it
         N_start = N_pretime + self.opt.num_delay - N_trigger_time
 
