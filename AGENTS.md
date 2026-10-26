@@ -49,7 +49,7 @@ notebooks (*.ipynb)
 
 | File | Role |
 |---|---|
-| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, cosine LR schedule, `purge_unfinished_scans`). |
+| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, `get_f1_ignition` (F1 expected from theory under trigger noise), cosine LR schedule, `purge_unfinished_scans`). |
 | `src/mnesis_chains.py` | Pattern generators (`SpikingPattern`, `StochasticSpikingPattern`) and the `HD_SNN` class (`forward_pass`, `get_W_init`, `update_weight`, `learn_model`); also a `load()` helper for trained checkpoints. |
 
 Notebooks (`src/*.ipynb`) are numbered simple → complex, each loading cached
@@ -245,7 +245,7 @@ with code).
 | *motif* (a stored spiking pattern, `N_pattern` of them) | "pattern" when referring to what is memorised |
 | *trigger window* (first `num_delay` ms, clamped input) | "cue", "prompt" |
 | *replay* / *re-emit* | "output the duration" |
-| *evoked window* = `spikes[:, :, N_pretime+num_delay : N_time+N_pretime]` vs `target[:, :, num_delay:]` | ad-hoc scoring slices |
+| *evoked window* = `spikes[:, :, N_pretime+num_delay : N_time+N_pretime]` vs `frozen_target[:, :, num_delay:]` (the trigger comes from a seeded noisy realisation `pattern_object(seed=...)`, the score always from the frozen motif) | ad-hoc scoring slices, scoring against the noisy realisation |
 | *spiking motif (SM) window* for the `num_delay`-wide history | "stimulus window" |
 
 **Raster legend (used by every retrieval notebook):** green `x` = input spikes
@@ -268,8 +268,16 @@ plot.
 | `scan_{key}` (one per scanned parameter) | 20 |
 | `periodic_*` / `optuna` (displayed only, `figpath=None`) | 18 / 25 |
 
-`printfig` skips an existing file unless `DEBUG > 1`: to refresh a figure in
-production, delete it from `figures/` first.
+`printfig` overwrites existing files by default (`do_overwrite=True`) and saves
+the exact `fig_width` x `fig_height` canvas (`bbox=None`, constrained layout), so
+a figure prints at scale 1 when `\includegraphics` uses the same width.
+Text in figures prints at the manuscript sizes (11 pt class): `STYLE` sets axis
+labels to `normalsize` (10.95 pt) and ticks/legends to `small` (10 pt). The TikZ
+figures are scaled by `\includegraphics`, so their fonts (`\papernormalsize`,
+`\papersmall`) are divided by `\printscale` (printed width / natural width);
+update `\printscale` in `tikz_izhikevich.tex` if its natural width changes.
+`pattern` is pinned on the rows of `tikz_snntorch.tex` (`\xY`, `\tLabelY`, bounding
+box): change both together.
 
 **Character hygiene:** no non-breaking/narrow spaces (U+00A0/U+202F), zero-width
 characters, curly quotes or non-ASCII hyphens in `.py`, `.ipynb`, `.tex`

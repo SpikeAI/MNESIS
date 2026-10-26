@@ -46,8 +46,13 @@ class SpikingPattern:
         if verbose:
             print(f"Target pattern generated with shape {self.frozen_target.shape} and mean {self.frozen_target.mean().item():.3e}")
 
-    def __call__(self):
+    def __call__(self, seed=None, verbose=False):
         """Return the frozen target pattern.
+
+        Args:
+            seed: Ignored; accepted so that every generator can be called
+                with the same signature as :class:`StochasticSpikingPattern`.
+            verbose: Ignored, for the same reason.
 
         Returns:
             torch.Tensor: The stored spike raster, of shape
@@ -153,6 +158,12 @@ class HD_SNN(nn.Module):
         as ``(A + B - C).clamp(0, 1)`` and ravelled into the delay-expanded
         linear layer before the leaky integrate-and-fire step.
 
+        On MPS the loop synchronises every ``sync_every`` steps: without it,
+        a long run (about 1e5 steps) piles up all its kernels in a single
+        Metal command buffer, which the driver rejects as a whole
+        (``kIOGPUCommandBufferCallbackErrorOutOfMemory``) while PyTorch
+        silently returns all-zero tensors.
+
         Args:
             input_spikes: External spikes of shape
                 ``(N_pattern, N_neuron, N_time)``.
@@ -177,6 +188,7 @@ class HD_SNN(nn.Module):
         spikes  = torch.zeros(N_pattern, self.opt.N_neuron, N_time, device=device, dtype=dtype)
         mem_rec = torch.zeros(N_pattern, self.opt.N_neuron, N_time, device=device, dtype=dtype)
         mem = self.net.lif.init_leaky()
+        sync_every = 1000 if device.type == 'mps' else 0 # number of steps between two MPS synchronisations (0 = never)
 
         for t in range(self.opt.num_delay, N_time):
             spike_window_A = spikes[:, :, (t - self.opt.num_delay):t]
@@ -190,6 +202,8 @@ class HD_SNN(nn.Module):
             current[:, :, t] = cur
             spikes[:, :, t] = spk
             mem_rec[:, :, t] = mem
+            # flush the queued kernels before the command buffer grows too large to be accepted
+            if sync_every and (t % sync_every == 0): torch.mps.synchronize()
 
         return current, mem_rec, spikes
 
@@ -208,11 +222,15 @@ class HD_SNN(nn.Module):
           ``W = pinv(C) T``; otherwise use the normalised Hebbian
           cross-correlation ``T^T C / <||c||^2>``.
 
+        The regression is fitted on the frozen pattern, the noise-free
+        reference that every evaluation scores against, so that the
+        initialisation is deterministic for a given ``opt.seed``.
+
         Returns:
             torch.Tensor: The initial weights for ``net.lin``, of shape
             ``(N_neuron, N_neuron * num_delay)``.
         """
-        target = self.pattern_object()
+        target = self.pattern_object.frozen_target
         windows = target[:, :, :-1].unfold(dimension=2, size=self.opt.num_delay, step=1)
         windows  = windows.permute(0, 2, 1, 3).contiguous()
         batch    = self.opt.N_pattern * (self.opt.N_time - self.opt.num_delay)
@@ -247,7 +265,7 @@ class HD_SNN(nn.Module):
             W_init = self.get_W_init()
             self.net.lin.weight.copy_(W_init)
             
-    def get_input_spikes(self, target, p_A=None, N_pretime=None, N_trigger_time=None, N_time=None):
+    def get_input_spikes(self, target, p_A=None, N_pretime=None, N_trigger_time=None, N_time=None, seed=None):
         """Build the trigger input spikes for the network.
 
         The input concatenates a ``N_pretime`` chunk of spontaneous
@@ -264,19 +282,22 @@ class HD_SNN(nn.Module):
             N_trigger_time: Length of the cue window; defaults to
                 ``opt.num_delay``.
             N_time: Length of the memory stretch; defaults to ``opt.N_time``.
+            seed: Seed for the spontaneous activity; ``None`` draws from the
+                global ``torch`` generator (seeded by ``Params``).
 
         Returns:
             torch.Tensor: Detached input spikes of shape
             ``(N_pattern, N_neuron, N_time + 2*N_pretime)``.
         """
-        if p_A is None: p_A = self.opt.p_A 
+        if p_A is None: p_A = self.opt.p_A
         if N_pretime is None: N_pretime = self.opt.N_pretime
         if N_trigger_time is None: N_trigger_time = self.opt.num_delay
         if N_time is None: N_time = self.opt.N_time
+        generator = None if seed is None else torch.Generator().manual_seed(int(seed))
 
         input_spikes = torch.zeros((self.opt.N_pattern, self.opt.N_neuron, N_time+2*N_pretime))
         # spontaneous activity before the trigger window
-        input_spikes[:, :, :N_pretime] = torch.bernoulli(p_A * torch.ones((self.opt.N_pattern, self.opt.N_neuron, N_pretime)))
+        input_spikes[:, :, :N_pretime] = torch.bernoulli(p_A * torch.ones((self.opt.N_pattern, self.opt.N_neuron, N_pretime)), generator=generator)
         # the trigger window, which is the target pattern for the first milliseconds
         input_spikes[:, :, N_pretime:(N_pretime+N_trigger_time)] = target[:, :, :N_trigger_time]
         return input_spikes.to(self.opt.device).detach()
@@ -284,14 +305,17 @@ class HD_SNN(nn.Module):
     def learn_model(self, verbose=True):
         """Train the delay weights by surrogate-gradient BPTT.
 
-        At each epoch a fresh target is drawn from ``pattern_object``, the
-        network is unrolled through :meth:`forward_pass` on the cued input
-        from :meth:`get_input_spikes`, and the loss (``SpikeF1scoreLoss`` by
-        default, or ``MSELoss``) is evaluated only after the spontaneous
-        pre-time and the trigger window. The learning rate follows a cosine
-        decay with linear warmup. An evaluation pass (dropout disabled)
-        logs loss, precision, recall and F1 every ``num_epochs // 64``
-        epochs.
+        At each epoch a fresh noisy realisation is drawn from
+        ``pattern_object`` (data augmentation), the network is unrolled
+        through :meth:`forward_pass` on the cued input from
+        :meth:`get_input_spikes`, and the loss (``SpikeF1scoreLoss`` by
+        default, or ``MSELoss``) between the output and that realisation is
+        evaluated only after the spontaneous pre-time and the trigger window.
+        The learning rate follows a cosine decay with linear warmup. An
+        evaluation pass (dropout disabled), cued by another realisation and
+        scored against the frozen pattern, logs loss, precision, recall and
+        F1 every ``num_epochs // 64`` epochs. All realisations are seeded
+        from ``opt.seed``, so a run is reproducible.
 
         Args:
             verbose: If ``True``, print periodic training logs.
@@ -322,13 +346,18 @@ class HD_SNN(nn.Module):
 
         loss_val, precision, recall, f1_score = [], [], [], []
         log_interval = max(self.opt.num_epochs // 64, 1)
+        # one (train, validation) seed pair per epoch, drawn from opt.seed: large random
+        # integers, so they do not coincide with the evaluation seeds opt.seed + i of the notebooks
+        seeds = np.random.default_rng(self.opt.seed).integers(2**31, size=(self.opt.num_epochs, 2))
+        target_frozen = self.pattern_object.frozen_target[:, :, self.opt.num_delay:]
 
         for i_step in range(self.opt.num_epochs):
             self.net.train()
+            seed_train, seed_val = seeds[i_step].tolist()
             # the pattern that we wish to memorize
-            target = self.pattern_object() # NOTE: we assume that the pattern generator can generate a new pattern each time it is called
+            target = self.pattern_object(seed=seed_train) # NOTE: we assume that the pattern generator can generate a new pattern each time it is called
             # the input spikes that we feed to the network, which includes pre-time spontaneous activity (padding) and the target pattern just for the trigger window
-            input_spikes = self.get_input_spikes(target=target).detach()
+            input_spikes = self.get_input_spikes(target=target, seed=seed_train).detach()
             optimizer.zero_grad()
             # the optimal output spikes that the network produces in response to the input spikes
             _, _, output_spikes = self.forward_pass(input_spikes)
@@ -341,17 +370,17 @@ class HD_SNN(nn.Module):
 
             with torch.no_grad():
                 self.net.eval()
-                # the pattern that we wish to memorize
-                target = self.pattern_object()
-                # the input spikes 
-                input_spikes = self.get_input_spikes(target=target).detach()
+                # a fresh noisy realisation cues the network...
+                target = self.pattern_object(seed=seed_val)
+                # the input spikes
+                input_spikes = self.get_input_spikes(target=target, seed=seed_val).detach()
                 # the optimal output spikes that the network produces in response to the input spikes
                 _, _, output_spikes = self.forward_pass(input_spikes)
                 output_spikes_trimmed = output_spikes[:, :, (self.opt.N_pretime+self.opt.num_delay):(self.opt.N_time+self.opt.N_pretime)]
-                input_target_trimmed = target[:, :, self.opt.num_delay:]
-                loss_val_ = loss_fn(output_spikes_trimmed, input_target_trimmed)
+                # ...and the replay is scored against the noise-free frozen pattern, as in the notebooks
+                loss_val_ = loss_fn(output_spikes_trimmed, target_frozen)
                 loss_val.append(loss_val_.item())
-                precision_, recall_, f1_score_ = get_scores(output_spikes_trimmed, input_target_trimmed)
+                precision_, recall_, f1_score_ = get_scores(output_spikes_trimmed, target_frozen)
                 precision.append(precision_.cpu()) 
                 recall.append(recall_.cpu())
                 f1_score.append(f1_score_.cpu())

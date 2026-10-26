@@ -6,7 +6,8 @@ dataclass that is the single source of hyperparameter truth, and the
 utilities reused by :mod:`mnesis_chains` and all notebooks: random bit
 flipping (:func:`flip_bits`), figure saving (:func:`printfig`), spike-score
 metrics (:func:`get_scores`, :func:`get_f1score`,
-:class:`SpikeF1scoreLoss`) and the cosine learning-rate schedule
+:class:`SpikeF1scoreLoss`), the F1 scores expected from theory under trigger
+noise (:func:`get_f1_noisy_copy`, :func:`get_f1_ignition`) and the cosine learning-rate schedule
 (:func:`get_cosine_schedule_with_warmup`).
 """
 
@@ -40,6 +41,7 @@ if DEBUG > 1:
 datetag = '2026-07-11' # run with new parameters from the camera ready
 datetag = '2026-08-06' # novel run on the revamped code
 datetag = '2026-09-07' # post poster RT neurocomp - preparing ICANN poster, INT seminar and paper submission
+# datetag = '2026-10-26' # seeded noisy cues, scoring against the frozen motifs, initialisation on the frozen motifs
 print(f"datetag = '{datetag}'")
 
 # --- Torch Setup ---
@@ -111,9 +113,9 @@ class Params:
 
     # figures
     verbose: bool = False                # Displays more verbose output.
-    fig_width: float = 8.6 *2              # width of figure in cm
-    fig_height: float = 4.3  *2              # height of figure in cm
+    fig_width: float = 15.92              # width of figure in cm: \textwidth of the paper (A4, 1 in margins), so figures print at scale 1
     phi: float = 1.61803                 # beauty is gold
+    fig_height: float = 15.92/phi             # height of figure in cm
     N_time_show: int = N_time                # number of time points to show in plots
     N_neuron_show: int = N_neuron              # number of SM to show in plots
     i_pattern: int = 0                     # index of the motif shown in plots
@@ -161,22 +163,27 @@ def _register_tex_fonts():
 
 _tex_faces = _register_tex_fonts()
 
+# Font sizes of the paper (scrartcl, 11 pt class option), in pt. Figures are printed
+# at scale 1 (see Params.fig_width), so these are also the sizes read in the paper.
+normalsize = 10.95  # body text and captions
+small = 10.  # \small
+
 STYLE = {
      'font.family': 'serif',
      'font.serif': ['Latin Modern Roman'] + _tex_faces + ['DejaVu Serif', 'STIXGeneral'],
      'mathtext.fontset': 'cm',
      'mathtext.default': 'regular',
      'text.usetex': False,
-     'font.size': 8,
+     'font.size': normalsize,
      'axes.linewidth': 0.8,
-     'axes.labelsize': 8,
-     'axes.titlesize': 8,
+     'axes.labelsize': normalsize,
+     'axes.titlesize': normalsize,
      'axes.spines.left': True,
      'axes.spines.right': False,
      'axes.spines.top': False,
      'axes.spines.bottom': True,
-     'xtick.labelsize': 7,
-     'ytick.labelsize': 7,
+     'xtick.labelsize': small,
+     'ytick.labelsize': small,
      'xtick.direction': 'in',
      'ytick.direction': 'in',
      'xtick.major.size': 3.0,
@@ -186,7 +193,7 @@ STYLE = {
      'errorbar.capsize': 1.5,
      'lines.linewidth': 1.0,
      'lines.markersize': 3.5,
-     'legend.fontsize': 7,
+     'legend.fontsize': small,
      'legend.frameon': False,
      'savefig.transparent': True,
 }
@@ -203,17 +210,28 @@ def pprint(s):
     print(s)
     print(len(s)*'=')
 
-def printfig(fig, name='', fig_width=12, fig_height=None, exts=['pdf', 'png', 'svg'], figpath=figpath, dpi_exp=None, bbox='tight', verbose=True, do_overwrite=DEBUG > 1):
+def printfig(fig, name='', fig_width=12, fig_height=None, exts=['pdf', 'png', 'svg'], figpath=figpath, dpi_exp=None, bbox=None, layout='constrained', verbose=True, do_overwrite=True):
     """Save a matplotlib figure to ``figpath`` under several extensions.
 
     Sizes the figure in centimetres, defaulting the height to
     ``fig_width / phi`` (golden ratio). On the Jean Zay cluster
     (``figpath is None``) saving is silently skipped. Existing files are
     overwritten only if ``do_overwrite`` is true.
+
+    Args:
+        fig_width: Width of the saved figure (cm); match it to the width the
+            paper gives to ``\\includegraphics`` so fonts print at their nominal size.
+        fig_height: Height of the saved figure (cm); defaults to ``fig_width / phi``.
+        bbox: Passed to ``savefig(bbox_inches=...)``. The default ``None`` keeps
+            the exact ``fig_width`` x ``fig_height`` canvas, whereas ``'tight'``
+            crops it to the artists and so changes the printed scale.
+        layout: Layout engine set before saving (``'constrained'`` fits labels
+            inside the canvas); ``None`` keeps a manual ``subplots_adjust``.
     """
     if fig_height is None: fig_height = fig_width/phi
     cm = 1/2.54  # centimeters in inches
     fig.set_size_inches((fig_width*cm, fig_height*cm))
+    if layout is not None: fig.set_layout_engine(layout)
     if figpath is not None: 
         figpath.mkdir(exist_ok=True)
         for ext in exts:
@@ -240,10 +258,11 @@ def flip_bits(a, p_flip, seed=None, verbose=False):
     else:
         generator.manual_seed(seed)
     mask = torch.bernoulli(torch.ones_like(a) * p_flip, generator=generator)
-    if verbose:
-        print(f"Flipping {mask.sum().item()} bits out of {a.numel()} (p_flip={p_flip}, flip seed={seed}), {a.mean().item():.3e} -> {torch.where(mask == 1., 1 - a, a).mean().item():.3e}")
     flipped = torch.bernoulli(torch.ones_like(a) * a.mean(), generator=generator)
-    return torch.where(mask == 1., flipped, a)
+    out = torch.where(mask == 1., flipped, a)
+    if verbose:
+        print(f"Flipping {mask.sum().item()} bits out of {a.numel()} (p_flip={p_flip}, flip seed={seed}), {a.mean().item():.3e} -> {out.mean().item():.3e}")
+    return out
 
 def stop(): 
     """Raise an AssertionError on purpose: temporary end of the script."""
@@ -369,6 +388,73 @@ def get_beta_errorbar(scores, quantiles=(0.05, 0.95), axis=1):
     # clip so that errorbar never receives a negative length
     yerr = np.clip(np.stack([m - q[0], q[1] - m]), 0, None)
     return m, yerr
+
+def get_f1_noisy_copy(p_flip, p_A):
+    """F1 score of a balanced-flipped motif against the frozen one.
+
+    A balanced flip (:func:`flip_bits`) keeps a spike of the motif with
+    probability ``q = 1 - p_flip (1 - p_A)`` and turns an empty bin into a
+    spike with probability ``p_flip p_A``, so the expected precision and
+    recall are both equal to ``q``. This is the score of a readout that would
+    copy the corrupted motif as is, without any pattern completion: it falls
+    linearly from 1 to chance level (``F1 = p_A``) at ``p_flip = 1``.
+
+    Args:
+        p_flip (float or np.ndarray): bit-flip probability (dimensionless).
+        p_A (float): firing probability of the motif (spike per time bin).
+
+    Returns:
+        np.ndarray: expected F1 score, shaped like ``p_flip``.
+    """
+    return 1 - np.asarray(p_flip, dtype=float) * (1 - p_A)
+
+def get_f1_ignition(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0=1., recall_0=1.):
+    """F1 score expected when a noisy trigger ignites, or not, the replay of each motif.
+
+    Mean-field model of the pseudo-inverse readout (:meth:`mnesis_chains.HD_SNN.get_W_init`):
+    each spike of a motif is supported by the ``K`` spikes of that motif in its
+    spiking-motif window (``N_neuron`` neurons by ``num_delay`` time bins), and
+    ``K`` follows a Poisson law of mean ``lam = p_A N_neuron num_delay``. The
+    minimum-norm solution gives these supporting spikes equal weights, so the
+    membrane reaches 1 when all of them are present and ``k / K`` when only
+    ``k`` of them are; a spurious spike of the trigger falls on a near-zero
+    weight, as the motifs are sparse. Each supporting spike of the trigger
+    survives the flips with probability ``q = 1 - p_flip (1 - p_A)``.
+
+    The first evoked spikes are driven by the trigger alone and, ``lam`` being
+    small, they share the same few supporting spikes: the replay of a motif
+    therefore ignites as a whole if ``k >= ceil(lif_threshold K)`` (it then
+    sustains itself, the noise-free motif being a stable fixed point) and
+    dies out otherwise, with an ignition probability
+
+        ``R = sum_{K >= 1} Poisson(K; lam) P(Binomial(K, q) >= ceil(lif_threshold K))``.
+
+    An ignited motif is replayed with the noise-free precision and recall, a
+    silent one only adds false negatives, so that summed over the motifs
+    ``F1 = 2 R recall_0 / (1 + R recall_0 / precision_0)``.
+
+    Args:
+        p_flip (float or np.ndarray): bit-flip probability of the trigger (dimensionless).
+        p_A (float): firing probability of the motif (spike per time bin).
+        N_neuron (int): number of neurons.
+        num_delay (int): width of the spiking-motif window (time bins).
+        lif_threshold (float): firing threshold, relative to the membrane
+            potential reached on the motif (dimensionless).
+        precision_0 (float): precision of the replay at ``p_flip = 0``.
+        recall_0 (float): recall of the replay at ``p_flip = 0``.
+
+    Returns:
+        np.ndarray: expected F1 score, shaped like ``p_flip``.
+    """
+    p_flip = np.asarray(p_flip, dtype=float)
+    lam = p_A * N_neuron * num_delay
+    # K = 0 is left out: with no supporting spike, the bias-free readout never fires
+    K = np.arange(1, int(lam + 10 * np.sqrt(lam)) + 10)
+    # rounding first, so that e.g. 0.75 * 4 = 3 is not pushed to 4 by a float error
+    k_min = np.ceil(np.round(lif_threshold * K, 9))
+    q = 1 - p_flip[..., None] * (1 - p_A)
+    R = np.sum(stats.poisson.pmf(K, lam) * stats.binom.sf(k_min - 1, K, q), axis=-1)
+    return 2 * R * recall_0 / (1 + R * recall_0 / precision_0)
 
 class SpikeF1scoreLoss(nn.Module):
     """Training loss ``L = 1 - F1`` between predicted and target spikes."""
