@@ -10,12 +10,12 @@
   \includegraphics[width=0.33\linewidth]{scan_N_neuron.pdf}
   % TODO \includegraphics[width=0.9\linewidth]{scan_p_A.pdf}
   \caption{%
-    Effect of some key parameters on working-memory performance (loss $\mathcal{L} = 1 - F_1$; bars show the mean and whiskers the 5--95\,\% quantile range over $N_\mathrm{cv} = 10$ cross-validation folds). %
-    \emph{Left:} Increasing the maximum delay $D$ consistently reduces the loss, confirming that deeper delay windows provide a larger, more orthogonal context and that longer maximum delays directly increase the capacity of the recurrent HD-SNN\@. % (Section~\ref{sec:capacity}). %
+    Effect of some key parameters on working-memory performance ($F_1$ score; bars show the mean and whiskers the 5--95\,\% quantile range over $N_\mathrm{cv} = 10$ cross-validation folds). %
+    \emph{Left:} Increasing the maximum delay $D$ consistently increases the $F_1$ score, confirming that deeper delay windows provide a larger, more orthogonal context and that longer maximum delays directly increase the capacity of the recurrent HD-SNN\@. % (Section~\ref{sec:capacity}). %
     \emph{Middle:} 
-    Loss grows slowly and monotonically with pattern duration $T$, consistent with the compounding-error and gradient-vanishing arguments: longer sequences require the network to maintain coherent predictions further from the trigger window. %
+    The $F_1$ score decreases slowly and monotonically with pattern duration $T$, consistent with the compounding-error and gradient-vanishing arguments: longer sequences require the network to maintain coherent predictions further from the trigger window. %
     \emph{Right:} 
-    The loss drops steeply with the number of neurons $N$: retrieval fails ($\mathcal{L} \approx 1$) below about $400$ neurons and the loss is low only for $N \gtrsim 1000$.
+    The $F_1$ score rises steeply with the number of neurons $N$: retrieval fails ($F_1 \approx 0$) below about $400$ neurons and the score is high only for $N \gtrsim 1000$.
     % Performance is optimal at low background firing rates ($p_A \lesssim 10^{-3}$) and degrades sharply at higher rates. 
   }\label{fig:scan}
 \end{figure}
