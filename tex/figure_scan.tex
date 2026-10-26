@@ -10,7 +10,7 @@
   \includegraphics[width=0.333\linewidth]{scan_N_neuron.pdf}
   % TODO \includegraphics[width=0.9\linewidth]{scan_p_A.pdf}
   \caption{%
-    Effect of some key parameters on working-memory performance ($F_1$ score; bars show the mean and whiskers the 5--95\,\% quantile range over $N_\mathrm{cv} = 10$ cross-validation folds). %
+    Effect of some key parameters on working-memory performance ($F_1$ score over $10$ independent runs, each training a new network on new patterns drawn from its own random seed, a given seed sharing its patterns across all values of a parameter; bars show the mean over these runs, and whiskers span the $5\%$ to $95\%$ quantiles of a beta distribution fitted to them). %
     \emph{Left:} Increasing the maximum delay $D$ consistently increases the $F_1$ score, confirming that deeper delay windows provide a larger, more orthogonal context and that longer maximum delays directly increase the capacity of the recurrent HD-SNN\@. % (Section~\ref{sec:capacity}). %
     \emph{Middle:} 
     The $F_1$ score decreases slowly and monotonically with pattern duration $T$, consistent with the compounding-error and gradient-vanishing arguments: longer sequences require the network to maintain coherent predictions further from the trigger window. %

@@ -120,7 +120,7 @@ class Params:
     N_neuron_show: int = N_neuron              # number of SM to show in plots
     i_pattern: int = 0                     # index of the motif shown in plots
     N_scan: int = 13 // DEBUG + 1        # number of values to scan
-    N_cv: int = 10 // DEBUG + 1        # number of cross-validation steps
+    N_cv: int = 10 // DEBUG + 1        # number of independent repetitions (random seeds) per scan value
 
     def __post_init__(self):
         torch.manual_seed(self.seed)
