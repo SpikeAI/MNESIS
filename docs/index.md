@@ -64,7 +64,7 @@ Defaults are those of the {class}`~mnesis_boilerplate.Params` dataclass; one tim
 | $D$ | `num_delay` | 41 time bins | number of delays per synapse, i.e. length of a spiking motif |
 | $M$ | `N_pattern` | 16 | number of stored motifs |
 | $T$ | `N_time` | 1000 time bins | duration of each motif |
-| $N_\mathrm{pretime}$ | `N_pretime` | 50 time bins | spontaneous activity before and after the stimulus |
+| $N_\mathrm{pretime}$ | `N_pretime` | 50 time bins | spontaneous activity before the stimulus |
 | $p_A$ | `p_A` | 0.00016 per time bin | prior probability of firing |
 | $p_\mathrm{flip}$ | `p_flip` | 0.01 | probability of flipping a bit in the stochastic pattern generator |
 | — | `seed` | 2026 | seed of the random number generators |
@@ -126,7 +126,8 @@ exact value a given figure used.
 
 The values below are those quoted in the paper. The caches of the current `datetag`
 may differ: in particular, notebook 20 now scans other grids ($D \in [1, 60]$,
-$T \in [100, 1558]$, $N \in [50, 2000]$, $p_A \in [2 \times 10^{-4}, 5 \times 10^{-2}]$).
+$T \in [100, 1558]$, $N \in [50, 2000]$). The $p_A$ scan over
+$[2 \times 10^{-4}, 5 \times 10^{-2}]$ is the one now reported in the paper.
 
 | Experiment | Key result (paper) |
 |---|---|
@@ -135,9 +136,9 @@ $T \in [100, 1558]$, $N \in [50, 2000]$, $p_A \in [2 \times 10^{-4}, 5 \times 10
 | Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
 | Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
 | Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
-| Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
-| Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
-| Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
+| Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.15$ at $D=3$; $F_1 \to 1$ at $D=127$ |
+| Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.996$ at $T=64$; $F_1 \approx 0.92$ at $T=2048$ |
+| Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.98$ for $p_A \in [3\times10^{-4}, 1.3\times10^{-3}]$; $F_1 \approx 0.70$ at $p_A \approx 3\times10^{-2}$ |
 | Periodic memory ({doc}`NB 18 <notebooks/18_MNESIS_learn-periodic>`) | Stable periodic retrieval under progressive bit-flip noise |
 
 ## Citation

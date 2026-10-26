@@ -62,9 +62,10 @@ build — run them yourself as described in {doc}`installation`).
   `scan_{key}` figures, of which `scan_num_delay`, `scan_N_time` and
   `scan_N_neuron` appear in the paper.
 - {doc}`NB 25: Optuna optimisation <notebooks/25_MNESIS_optuna>` — automated hyperparameter search with
-  [Optuna](https://optuna.org/) over the initialisation flags, learnable
-  $\beta$ / $\vartheta$, reset mechanism, optimiser, $\beta$, surrogate
-  sharpness and learning rates. Its figure is displayed, not saved.
+  [Optuna](https://optuna.org/) (multivariate TPE, 200 trials of 128 epochs)
+  over the initialisation flags, the optimiser, the LIF parameters ($\beta$,
+  $\vartheta$, reset mechanism, learnt or not), the surrogate sharpness, the
+  learning rates and the dropout rate. Its figure is displayed, not saved.
 
 ```{note}
 The scan/optimisation notebooks use file-based locking: a `.lock` sentinel

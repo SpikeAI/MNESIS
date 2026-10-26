@@ -81,7 +81,7 @@ class Params:
     num_delay: int = 41                  # number of timesteps in SM (no parity constraint: the delay windows are causal)
     N_pattern: int = 16 // DEBUG         # number of spiking motifs
     N_time: int = 1000 // DEBUG          # number of timebins for the WM patterns
-    N_pretime: int = 50                  # number of timebins for spontaneous activity before and after the stimulus
+    N_pretime: int = 50                  # number of timebins for spontaneous activity before the stimulus (the input then ends with as many silent bins)
     p_A: float = 0.00016                 # prior probability of firing for postsynaptic raster plot (spike per timebin)
     p_flip: float = 0.01                 # the default probability of flipping a bit in the stochastic pattern generator
     seed: int = 2026                     # seed
