@@ -4,6 +4,7 @@
 % -*- coding: UTF-8; -*-
 % vim: set fenc=utf-8
 %=== file: myfigure.tex ==========================================
+\RequirePackage{fix-cm}  % scalable Computer Modern math, for the non-standard sizes below
 \documentclass[tikz,border=2pt]{standalone}   % "border" adds optional margin
 % -------------------------------------------------------------
 % 1. Packages you used in the original doc (add any that are missing)
@@ -12,6 +13,14 @@
 \usetikzlibrary{arrows.meta,calc,positioning,shapes,decorations.pathreplacing,fit,backgrounds} % etc.
 \usepackage{pgfplots}                % if you used pgfplots
 \pgfplotsset{compat=newest}           % optional - keep the same version as before
+% -------------------------------------------------------------
+% Fonts at the sizes of the manuscript text (11 pt class: \normalsize 10.95 pt,
+% \small 10 pt). The paper prints this picture at \printscale of its natural size
+% (0.49\textwidth = 7.80 cm for a natural width of 11.64 cm, set by the bounding
+% box below), so each size is divided by that scale to print at the text size.
+\def\printscale{0.6701}
+\newcommand\papernormalsize{\fontsize{\fpeval{10.95/\printscale}}{\fpeval{13.6/\printscale}}\selectfont}
+\newcommand\papersmall{\fontsize{\fpeval{10/\printscale}}{\fpeval{12/\printscale}}\selectfont}
 % -------------------------------------------------------------
 % 2. Any global TikZ settings that the picture depends on
 \tikzset{
@@ -27,24 +36,29 @@
     y=1cm,
     line cap=round,
     line join=round,
-    font=\sffamily,
+    font=\papernormalsize,
     rect/.style={draw=#1, fill=#1!10, line width=0.9pt, rounded corners=2.5pt, minimum width=2.1cm, minimum height=0.9cm, inner sep=1pt},
     spike/.style={draw=black, line width=1.05pt, -{stealth[length=2.8mm,width=2.2mm]}},
     beta/.style={draw=cyan!60!black, line width=1.2pt, -{stealth[length=2.5mm,width=2.0mm]}},
     weights/.style={draw=blue!80!black, line width=1.3pt, -{stealth[length=2.6mm,width=2.0mm]}},
     thr/.style={draw=orange!55!brown!85!black, line width=1.3pt, -{stealth[length=2.6mm,width=2.0mm]}},
-    labelbeta/.style={above, font=\large, text=cyan!60!black, midway},
-    labelweights/.style={above, font=\large, text=blue!80!black, pos=0.50},
-    labelthr/.style={above, sloped, font=\large, text=orange!55!brown!85!black, midway},
+    labelbeta/.style={above, font=\papersmall, text=cyan!60!black, midway},
+    labelweights/.style={above, font=\papersmall, text=blue!80!black, pos=0.40},
+    labelthr/.style={above, sloped, font=\papersmall, text=orange!55!brown!85!black, midway},
   ]
- 
+
+  % Clip-friendly top border for the dashed envelope; the height (7.054 cm,
+  % plus the 2pt standalone border) gives the golden ratio, as pattern.pdf.
+  % Set first, so that no later node (the inner sep of the t labels) enlarges it.
+  \path[use as bounding box] (-1.7,-3.427) rectangle (9.8,3.627);
+
   \def\colSep{3.55}
-  \def\xY{-2.05}
-  \def\iY{-0.55}
-  \def\uY{0.95}
+  \def\xY{-1.9}
+  \def\iY{-0.45}
+  \def\uY{1.0}
   \def\sY{2.45}
   \newcommand{\colpos}[2]{({\colSep*#1,#2})}
-  \def\tLabelY{-3.0}
+  \def\tLabelY{-3.15}  % rows 1.45 cm apart and t labels low: room under X[t] for the x axis of pattern.pdf
   \def\ellipsisX{9.20}
   \def\blueRise{0.95}
   \def\blueRun{1.15}
@@ -69,7 +83,7 @@
 
     % Vertical input chain
     \foreach \i in {0,1,2} {
-     \draw[spike] (X\i.north) -- node[midway, right=2pt, font=\large] {$W_0$} (I\i.south);
+     \draw[spike] (X\i.north) -- node[midway, right=2pt, font=\papersmall] {$W_0$} (I\i.south);
      \draw[spike] (I\i.north) -- (U\i.south);
      \draw[spike] (U\i.north) -- (S\i.south);
      \draw[spike] (S\i.north) -- ++(0,0.6);
@@ -88,19 +102,16 @@
       % \draw[weights] (X2.north east) -- ++(\blueRun,\blueRise);
  
   % Time labels
-  \node[font=\Large] at (0,\tLabelY) {$t = 0$};
-  \node[font=\Large] at (\colSep,\tLabelY) {$t = 1$};
-  \node[font=\Large] at (2*\colSep,\tLabelY) {$t = 2$};
+  \node[font=\papernormalsize] at (0,\tLabelY) {$t = 0$};
+  \node[font=\papernormalsize] at (\colSep,\tLabelY) {$t = 1$};
+  \node[font=\papernormalsize] at (2*\colSep,\tLabelY) {$t = 2$};
   
   % Top arrows and labels
-    \node[font=\Large] at (\ellipsisX, \sY) {$\cdots$};
-    \node[font=\Large] at (\ellipsisX, \uY) {$\cdots$};
-    \node[font=\Large] at (\ellipsisX, \iY) {$\cdots$};
-    \node[font=\Large] at (\ellipsisX, \xY) {$\cdots$};
+    \node[font=\papernormalsize] at (\ellipsisX, \sY) {$\cdots$};
+    \node[font=\papernormalsize] at (\ellipsisX, \uY) {$\cdots$};
+    \node[font=\papernormalsize] at (\ellipsisX, \iY) {$\cdots$};
+    \node[font=\papernormalsize] at (\ellipsisX, \xY) {$\cdots$};
  
-  % Clip-friendly top border for the dashed envelope; the height (7.054 cm,
-  % plus the 2pt standalone border) gives the golden ratio, as pattern.pdf
-  \path[use as bounding box] (-1.7,-3.427) rectangle (9.8,3.627);
   \end{tikzpicture}%
 % -------------------- END OF YOUR PICTURE -----------------
 \end{document}
