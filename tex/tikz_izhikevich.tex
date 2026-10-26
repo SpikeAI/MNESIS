@@ -29,13 +29,15 @@
 % -------------------------------------------------------------
 
 % Fonts at the sizes of the manuscript text (11 pt class: \normalsize 10.95 pt,
-% \small 10 pt). The paper prints this picture at \printscale of its natural size
-% (\linewidth = 15.92 cm over the natural width of tikz_izhikevich.pdf), so each
-% size is divided by that scale to print at the text size. The natural width
-% depends slightly on the labels at the edges: update \printscale after a change.
+% \small 10 pt, \scriptsize 8 pt). The paper prints this picture at \printscale of
+% its natural size (\linewidth = 15.92 cm over the natural width of
+% tikz_izhikevich.pdf), so each size is divided by that scale to print at the text
+% size. The natural width depends slightly on the labels at the edges: update
+% \printscale after a change.
 \def\printscale{0.6531}
 \newcommand\papernormalsize{\fontsize{\fpeval{10.95/\printscale}}{\fpeval{13.6/\printscale}}\selectfont}
 \newcommand\papersmall{\fontsize{\fpeval{10/\printscale}}{\fpeval{12/\printscale}}\selectfont}
+\newcommand\paperscriptsize{\fontsize{\fpeval{8/\printscale}}{\fpeval{9.5/\printscale}}\selectfont}
 
 %==================== Motif definition ==========================
 % --- Population ---------------------------------------------------------
@@ -101,8 +103,12 @@
     redout/.style={draw=red!90!black, line width=4.4pt},
     spontaneous/.style={draw=black!45, line width=2.2pt, opacity=0.4},
     recurrent/.style={densely dotted, draw=blue!55!black!35, line width=0.9pt},
-    nodeLabel/.style={sloped, above, fill=white, inner sep=2pt,
-        font=\papersmall},
+    % Delay labels sit above their arrow, in the colour of their motif, at the
+    % smallest paper size: larger ones mask the crossing bundles.
+    nodeLabel/.style={sloped, above, fill=white, inner sep=1pt,
+        font=\paperscriptsize},
+    brownlabel/.style={nodeLabel, text=black!60!red!75!brown},
+    greenlabel/.style={nodeLabel, text=green!40!black},
     panelTitle/.style={font=\papernormalsize\itshape},
     axisLabel/.style={font=\papernormalsize},
     tick/.style={font=\papersmall},
@@ -116,12 +122,23 @@
 }
 
 % Wiring diagram: one arrow per input spike, converging on the target.
-% #1 = style, #2 = motif list, #3 = target neuron, #4 = label position.
-\newcommand\drawWiring[4]{%
+% #1 = style, #2 = motif list, #3 = target neuron.
+\newcommand\drawWiring[3]{%
    \pgfmathsetmacro\targetRow{\Nneurons - #3}%
    \foreach \i/\d in #2 {%
      \pgfmathsetmacro\row{\Nneurons - \i}%
-     \draw[#1] (0,\row) -- node[nodeLabel, pos=#4] {$\d$} (\bRightShift,\targetRow);%
+     \draw[#1] (0,\row) -- (\bRightShift,\targetRow);%
+   }%
+}
+
+% Delay label of each arrow of \drawWiring. Drawn in a separate pass, once every
+% arrow is down, so that no arrow of the other motif runs over a label.
+% #1 = label style, #2 = motif list, #3 = target neuron, #4 = label position.
+\newcommand\drawDelays[4]{%
+   \pgfmathsetmacro\targetRow{\Nneurons - #3}%
+   \foreach \i/\d in #2 {%
+     \pgfmathsetmacro\row{\Nneurons - \i}%
+     \path (0,\row) -- node[#1, pos=#4] {\d\,ms} (\bRightShift,\targetRow);%
    }%
 }
 
@@ -164,8 +181,10 @@
     \draw[recurrent] (a\i) -- (b\i);
 }
 
-\drawWiring{brownlink}{\brownMotif}{\brownTarget}{\brownLabelPos}
-\drawWiring{greenlink}{\greenMotif}{\greenTarget}{\greenLabelPos}
+\drawWiring{brownlink}{\brownMotif}{\brownTarget}
+\drawWiring{greenlink}{\greenMotif}{\greenTarget}
+\drawDelays{brownlabel}{\brownMotif}{\brownTarget}{\brownLabelPos}
+\drawDelays{greenlabel}{\greenMotif}{\greenTarget}{\greenLabelPos}
 
 % Nodes on top of the links; motif neurons at full contrast, others faded.
 \foreach \i in {1,...,\Nneurons} {%
