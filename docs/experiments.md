@@ -33,16 +33,20 @@ build — run them yourself as described in {doc}`installation`).
   improves noise robustness. Figures: `pattern`, `target_init`, `target`,
   `histogram_log`.
 - {doc}`NB 13: Sequential retrieval <notebooks/13_MNESIS_testing-inference>` — concatenates all $M = 16$
-  patterns in sequence with $N_\mathrm{pretime} = 50$ steps of spontaneous
-  inter-trial activity; evaluates sliding-window $F_1$ to confirm selective,
+  patterns in sequence, separated by silent inter-trial intervals
+  ($4 N_\mathrm{pretime} = 200$ steps on each side, no spontaneous activity); evaluates sliding-window $F_1$ to confirm selective,
   cross-interference-free retrieval. Figure: `retrieval` (plus `.mp4`).
 
 ## Robustness tests
 
 - {doc}`NB 14: Noise robustness <notebooks/14_MNESIS_testing-noise>` — bit-flip noise on the trigger
   window ($p_\mathrm{flip} \in [0, 1]$), with fixed weights and, as a control,
-  with a network re-trained at each noise level. The paper reports
-  $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$.
+  with the network fine-tuned at each noise level. The paper reports
+  $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$. Both
+  score figures overlay the $F_1$ expected from theory for a motif-wise
+  ignition of the replay, which starts only if a fraction
+  $\vartheta$ of the $\approx p_A N D$ trigger spikes supporting it survive
+  (`get_f1_ignition`, with no fitted parameter).
   Figures: `p_flip_target`, `p_flip_score`, `p_flip_retrain_score`.
 - {doc}`NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>` — truncated trigger
   window; finds the minimum cue length for reliable recall. The paper reports

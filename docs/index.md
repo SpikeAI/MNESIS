@@ -133,7 +133,7 @@ $[2 \times 10^{-4}, 5 \times 10^{-2}]$ is the one now reported in the paper.
 |---|---|
 | Training ({doc}`NB 11 <notebooks/11_MNESIS_learn-synthetic>`) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
 | Sequential retrieval ({doc}`NB 13 <notebooks/13_MNESIS_testing-inference>`) | All 16 patterns retrieved without cross-interference |
-| Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
+| Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$; follows a motif-wise ignition model of the replay with no fitted parameter |
 | Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
 | Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
 | Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.15$ at $D=3$; $F_1 \to 1$ at $D=127$ |

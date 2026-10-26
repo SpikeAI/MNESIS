@@ -51,7 +51,7 @@ prefixed by the current `datetag` (the batch date, ISO 8601):
 | `{datetag}_init.pth` | 11 | Analytically initialised weights (pseudo-inverse or Hebbian, deconvolved or not) |
 | `{datetag}_vanilla.pth` | 11 | Trained model weights after gradient steps, loaded by 13–16 |
 | `{datetag}_score.npy` | 13 | Sliding-window $F_1$ trajectory of the sequential retrieval |
-| `{datetag}_noise.npz`, `{datetag}_noise_retrain.npz` | 14 | $F_1$ versus $p_\mathrm{flip}$ (fixed weights / re-trained), shape `(N_scan, N_cv)` |
+| `{datetag}_noise.npz`, `{datetag}_noise_retrain.npz` | 14 | $F_1$ versus $p_\mathrm{flip}$ (fixed weights / fine-tuned), shape `(N_scan, N_cv)` |
 | `{datetag}_trigger_time.npz` | 15 | $F_1$ versus trigger duration |
 | `{datetag}_N_neurons.npz` | 16 | $F_1$ versus number of silenced trigger neurons |
 | `{datetag}_periodic.pth`, `{datetag}_periodic_spikes.pth`, `{datetag}_periodic_spikes_noisy.pth` | 18 | Periodic-memory weights and retrieved rasters (clean / noisy) |
