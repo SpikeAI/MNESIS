@@ -1,285 +1,74 @@
 # MNESIS — Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green.svg)](LICENSE)
+[![Licence: GPL-3.0](https://img.shields.io/badge/Licence-GPL--3.0-green.svg)](LICENSE)
 [![Paper](https://img.shields.io/badge/Paper-ICANN%202026-orange.svg)](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
+[![Docs](https://img.shields.io/badge/Docs-spikeai.github.io%2FMNESIS-purple.svg)](https://spikeai.github.io/MNESIS/)
 
 > **MNESIS** — *a Memory Network where Every Spike Is Sacred*
 
-This repository contains the full implementation, experiments, and paper source for **MNESIS**, a recurrent spiking neural network (SNN) with heterogeneous synaptic delays that stores and recalls arbitrary spike patterns as sequential chains of overlapping Spiking Motifs.
+MNESIS is a recurrent spiking neural network (SNN) with heterogeneous synaptic delays that stores and recalls arbitrary spike patterns as sequential chains of overlapping Spiking Motifs. Every synapse carries $D$ learnable delays; a closed-form initialisation, obtained by deconvolving the LIF membrane response, reaches near-perfect recall before any gradient step, and surrogate-gradient training then adds robustness to noise.
+
+This repository holds the implementation, the experiment notebooks and the LaTeX source of the paper.
+
+**Paper:** Laurent U. Perrinet (2026). *Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays*. ICANN 2026 · [publication page](https://laurentperrinet.github.io/publication/perrinet-26-icann/) · arXiv [`2604.14096`](https://arxiv.org/abs/2604.14096).
 
 ---
 
-## Overview
+## Documentation
 
-Working memory in biological neural circuits relies on precise spike timing rather than sustained firing rates. MNESIS models this by equipping every synapse with $D$ learnable delays, parameterised as a single weight tensor $\mathbf{W} \in \mathbb{R}^{N \times N \times D}$. Each stored pattern is encoded as a chain of overlapping **Spiking Motifs**: contiguous context windows of length $D$ that uniquely predict the next time step of activity. A closed-form initialisation derived by deconvolving the LIF membrane response reaches near-perfect recall before any gradient step, while surrogate-gradient BPTT then adds robustness to noise.
+**[https://spikeai.github.io/MNESIS/](https://spikeai.github.io/MNESIS/)**
 
-The same `HD_SNN` framework is applied to sparse synthetic motifs and to periodic motifs. The experiments below build on one another: each numbered notebook imports the shared infrastructure and loads the cached artifacts produced by the previous one.
-
-**Paper:** Laurent U. Perrinet (2026). *Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays*. ICANN 2026.
-[`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/) · arXiv preprint [`2604.14096`](https://arxiv.org/abs/2604.14096).
-The PDF `tex/Perrinet26mnesis.pdf` is built locally from the LaTeX source (see [Build the paper](#build-the-paper)); it is git-ignored, not versioned.
-
-**Documentation:** [https://spikeai.github.io/MNESIS/](https://spikeai.github.io/MNESIS/) (API reference and rendered notebooks).
-
----
-
-## Repository structure
-
-```
-MNESIS/
-├── src/                                 # Python source and Jupyter notebooks (run from inside src/)
-│   ├── mnesis_boilerplate.py            # Imports, device setup, Params dataclass, figure style, utilities
-│   ├── mnesis_chains.py                 # SpikingPattern generators, HD_SNN class, analytical init, load()
-│   ├── requirements.txt                 # Python dependencies for notebook runs
-│   └── notebooks (numbered pipeline, run sequentially):
-│        ├── 10_MNESIS_generative-model.ipynb           # Frozen and stochastic motif generators
-│        ├── 11_MNESIS_learn-synthetic.ipynb            # Analytical init + training on synthetic motifs
-│        ├── 13_MNESIS_testing-inference.ipynb          # Sequential retrieval of the M motifs
-│        ├── 14_MNESIS_testing-noise.ipynb              # Robustness to bit-flip noise in the trigger
-│        ├── 15_MNESIS_testing-trigger-duration.ipynb   # Effect of trigger-window length
-│        ├── 16_MNESIS_testing-trigger-fraction.ipynb   # Effect of partial neuron coverage
-│        ├── 18_MNESIS_learn-periodic.ipynb             # Learning and retrieval of periodic memories
-│        ├── 20_MNESIS_scanning-parameters.ipynb        # One-at-a-time parameter scans
-│        ├── 25_MNESIS_optuna.ipynb                     # Hyperparameter optimisation (Optuna)
-│        └── 99_MNESIS_run-all.ipynb                    # End-to-end notebook orchestrator
-├── figures/                             # Figures generated by the notebooks (pdf/png/svg, versioned)
-├── tex/                                 # Paper source (build with lualatex)
-│   ├── Perrinet26mnesis.tex             # Main LaTeX source
-│   ├── metadata.tex                     # Author/affiliation/AI-statement macros (\input, not standalone)
-│   ├── figure_*.tex                     # Figure environments (caption + label) \input by the paper
-│   ├── tikz_izhikevich.tex, tikz_snntorch.tex   # Standalone TikZ figures (+ their compiled .pdf)
-│   └── mnesis.bib                       # Bibliography (biblatex/biber)
-├── docs/                                # Sphinx sources of the documentation site (no built HTML)
-│   ├── conf.py, Makefile, requirements.txt
-│   └── index.md, installation.md, api.md, experiments.md
-├── .github/workflows/static.yml         # CI: builds docs/ and deploys it to GitHub Pages
-├── cached_data/                         # Cached weights and scan results (git-ignored)
-├── AGENTS.md                            # Rules, commands and gotchas for developers and AI assistants
-├── CITATION.cff                         # Citation metadata ("Cite this repository" on GitHub)
-├── LICENSE
-└── README.md
-```
-
----
-
-## Quickstart
-
-### Install dependencies
-
-```bash
-pip install -r src/requirements.txt
-```
-
-Core dependencies: `torch`, `snntorch`, `numpy`, `scipy`, `matplotlib`, `jupyter`. The optimisation/scan notebooks additionally use `optuna` (bundled in `requirements.txt`).
-
-### Run the notebooks in order
-
-The notebooks are numbered and designed to be run sequentially. They import shared infrastructure from the Python modules `mnesis_boilerplate.py` (imports, device detection, `Params` dataclass, utilities) and `mnesis_chains.py` (`HD_SNN` class, pattern generators, analytical initialisation). Each notebook saves its outputs (model weights, scan results) to `cached_data/` so that downstream notebooks can load them without recomputation. Notebook 99 can orchestrate a full multi-notebook run in one place.
-
-```bash
-cd src
-jupyter notebook
-```
-
-Each notebook opens with its own `opt_dict = dict(...)` that overrides the global `Params`
-defaults for that experiment (a different `N_neuron`, `num_delay`, `N_pretime`, threshold, …).
-The global defaults in `Params` are the canonical reference; per-notebook `opt_dict`s tune the
-run for the pattern family being studied.
-
-| # | Notebook / Module | Purpose |
-|---|----------|---------|
-| — | `mnesis_boilerplate.py` | Shared imports, device detection (MPS / CUDA / CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass, global figure style, and helper functions reused by all downstream notebooks (`printfig`, `flip_bits`, `get_scores`, `SpikeF1scoreLoss`, `get_cosine_schedule_with_warmup`, `purge_unfinished_scans`). |
-| — | `mnesis_chains.py` | Defines `SpikingPattern`, `StochasticSpikingPattern`, the `HD_SNN` class with analytical weight initialisation (a pseudo-inverse or Hebbian cross-correlation, optionally deconvolving the LIF membrane), training (`learn_model`) and inference (`forward_pass`), and a `load()` helper for trained checkpoints. Corresponds to the Methods section of the paper. |
-| 10 | `10_MNESIS_generative-model.ipynb` | Defines the motifs every downstream notebook memorises: `SpikingPattern` draws a frozen Bernoulli raster of rate $p_A$ (seeded with `seed`), and `StochasticSpikingPattern` returns realisations of it with balanced bit flips of probability $p_\mathrm{flip}$ (the marginal rate is preserved). Shows the sensitivity of the realisations to $p_\mathrm{flip}$. |
-| 11 | `11_MNESIS_learn-synthetic.ipynb` | Trains the network on $M = 16$ synthetic sparse motifs. Demonstrates that the analytical init alone reaches high $F_1$; gradient training with a cosine schedule then improves noise robustness. Also plots the weight histograms. |
-| 13 | `13_MNESIS_testing-inference.ipynb` | Concatenates all $M = 16$ motifs in sequence with $N_\mathrm{pretime} = 50$ steps of spontaneous inter-trial activity; evaluates sliding-window $F_1$ to confirm selective, cross-interference-free retrieval. |
-| 14 | `14_MNESIS_testing-noise.ipynb` | Bit-flip noise on the trigger window ($p_\mathrm{flip} \in [0, 1]$), with fixed weights and, as a control, with a network re-trained at each noise level. |
-| 15 | `15_MNESIS_testing-trigger-duration.ipynb` | Truncated trigger window (1 to $D$ steps). Finds the minimum cue length for reliable recall. |
-| 16 | `16_MNESIS_testing-trigger-fraction.ipynb` | Partial neuron coverage (0 to $N$ neurons silenced in the trigger). |
-| 18 | `18_MNESIS_learn-periodic.ipynb` | Builds periodic targets, trains periodic memories, and evaluates retrieval robustness under increasing input noise. |
-| 20 | `20_MNESIS_scanning-parameters.ipynb` | One-at-a-time scans over `N_pattern` ($M$), `N_time` ($T$), `num_delay` ($D$), `N_neuron` ($N$), `p_A`, `lif_threshold` ($\vartheta$), `p_flip`, and the `do_deconv` / `do_pinv` flags, with $N_\mathrm{cv} = 10$ seeds per value (13 values per numeric scan). Produces the parameter-scan figures of the paper. |
-| 25 | `25_MNESIS_optuna.ipynb` | Automated hyperparameter search with [Optuna](https://optuna.org/) over the initialisation flags, learnable $\beta$ / $\vartheta$, reset mechanism, optimiser, $\beta$, surrogate sharpness and learning rates. |
-| 99 | `99_MNESIS_run-all.ipynb` | Purges the placeholder rows of interrupted scans (`purge_unfinished_scans`), then runs the full notebook pipeline (10 → 25) with progress timestamps. |
-
-### Cached data
-
-Results are saved to `cached_data/` (excluded from git via `.gitignore`), each file prefixed by the current `datetag` (here `2026-09-07`):
-
-| File | Written by | Content |
-|---|---|---|
-| `{datetag}_init.pth` | 11 | Analytically initialised weights (pseudo-inverse or Hebbian, deconvolved or not) |
-| `{datetag}_vanilla.pth` | 11 | Trained model weights after gradient steps, loaded by 13–16 |
-| `{datetag}_score.npy` | 13 | Sliding-window $F_1$ trajectory of the sequential retrieval |
-| `{datetag}_noise.npz`, `{datetag}_noise_retrain.npz` | 14 | $F_1$ versus $p_\mathrm{flip}$ (fixed weights / re-trained), shape `(N_scan, N_cv)` |
-| `{datetag}_trigger_time.npz` | 15 | $F_1$ versus trigger duration |
-| `{datetag}_N_neurons.npz` | 16 | $F_1$ versus number of silenced trigger neurons |
-| `{datetag}_periodic.pth`, `{datetag}_periodic_spikes.pth`, `{datetag}_periodic_spikes_noisy.pth` | 18 | Periodic-memory weights and retrieved rasters (clean / noisy) |
-| `{datetag}_periodic-with-noise.npz` | 18 | Periodic-memory robustness curves across noise levels and time chunks |
-| `{datetag}_scan_{key}.json` (+ `.lock`) | 20 | Parameter sweep results (`key`, `i_cv`, `loss`, `time` per row) |
-| `{datetag}_optuna.sqlite3` | 25 | Optuna study (synthetic motifs) |
-
-Delete a cached file to force its recomputation; set `RECOMPUTE = True` at the top of any notebook to invalidate the full cache for that notebook. The scan/optimisation notebooks additionally guard each run with a `.lock` sentinel file to allow safe incremental resumption (never delete a `.lock` while a scan is running). A scan interrupted mid-run leaves placeholder rows (`loss=null`, `time=0.0`); `purge_unfinished_scans()` (called by notebook 99) removes them so they are recomputed.
-
-### Figures
-
-Figures are written to `figures/` by `printfig` in pdf, png and svg (an existing file is overwritten only when `DEBUG > 1`). The paper picks them up through `\graphicspath{{../figures/}}`.
-
-| Figure(s) | Notebook | Used in the paper |
-|---|---|---|
-| `ssp_frozen_pattern`, `ssp_two_frozen_pattern` | 10 | — |
-| `pattern`, `target_init`, `target`, `histogram_log` | 11 | `pattern` (`figure_snntorch.tex`), `target` (`figure_target.tex`) |
-| `retrieval` (+ `retrieval.mp4`) | 13 | `figure_retrieval.tex` |
-| `p_flip_target`, `p_flip_score`, `p_flip_retrain_score` | 14 | `p_flip_score` (`figure_robustness.tex`) |
-| `trigger_time`, `trigger_time_score` | 15 | `trigger_time_score` (`figure_robustness.tex`) |
-| `fraction_target`, `fraction_target_score` | 16 | `fraction_target_score` (`figure_robustness.tex`) |
-| `scan_{key}` (one per scanned parameter) | 20 | `scan_num_delay`, `scan_N_time`, `scan_N_neuron` (`figure_scan.tex`) |
-| `periodic_*`, `optuna` | 18, 25 | — (displayed in the notebook only, `figpath=None`) |
-
-The two TikZ schematics (`tikz_izhikevich.pdf`, `tikz_snntorch.pdf`) are compiled in `tex/` from their own sources.
-
-### Build the paper
-
-The paper uses `fontspec` and `biblatex`, so it must be built with `lualatex` and `biber`, from inside `tex/` (the experiment figures must already exist in `figures/`):
-
-```bash
-cd tex
-lualatex -interaction=nonstopmode tikz_izhikevich.tex
-lualatex -interaction=nonstopmode tikz_snntorch.tex
-latexmk -pdflua -pdf -interaction=nonstopmode Perrinet26mnesis.tex
-```
-
-See `AGENTS.md` for the full build and check procedure.
-
-### Build and publish the documentation
-
-The site is built and deployed by the GitHub Actions workflow
-`.github/workflows/static.yml` on every push to `main`; no generated HTML is
-committed (`docs/` only holds the sources). To preview it locally:
-
-```bash
-pip install -r docs/requirements.txt && make -C docs html   # output in docs/_build/html
-```
-
-The build symlinks the `src/` notebooks into `docs/notebooks/` and renders them
-with their stored outputs. The Pages source must be set to "GitHub Actions"
-(repository Settings > Pages); the site is served at
-[https://spikeai.github.io/MNESIS/](https://spikeai.github.io/MNESIS/).
-
----
+| Page | Content |
+|---|---|
+| [Home](https://spikeai.github.io/MNESIS/) | Model equations, table of variables and defaults, analytical initialisation, training, results summary |
+| [Installation & Quickstart](https://spikeai.github.io/MNESIS/installation.html) | Dependencies, running the notebooks, debug mode, cached data, building the paper and the docs |
+| [Experiments & Notebooks](https://spikeai.github.io/MNESIS/experiments.html) | The annotated notebook pipeline and the figures each notebook produces |
+| [API Reference](https://spikeai.github.io/MNESIS/api.html) | `mnesis_chains` (`HD_SNN`, pattern generators) and `mnesis_boilerplate` (`Params`, utilities) |
 
 ## Model
 
-### Membrane dynamics
-
-Each neuron $j$ evolves as:
+Each neuron $j$ is a leaky integrate-and-fire unit driven by the delayed spikes of all neurons:
 
 $$u_j(t) = \beta \cdot u_j(t-1) \cdot (1 - s_j(t-1)) + \sum_{i=1}^{N} \sum_{d=1}^{D} W_{j,i,d} \cdot s_i(t-d)$$
 
-where $u_j(t)$ is the membrane potential of neuron $j$ at time bin $t$, $s_j(t) \in \{0, 1\}$ its spike
-(emitted when $u_j(t)$ crosses the threshold $\vartheta$, after which the membrane is reset to zero),
-$\beta$ the membrane decay per time bin, and $W_{j,i,d}$ the weight from neuron $i$ to neuron $j$ at
-delay $d$. In the code, $\mathbf{W}$ is stored as the `lin` layer of `HD_SNN`, of shape
-`(N_neuron, N_neuron * num_delay)`, and the delayed input $s_i(t-d)$ is the window of the last $D$
-spikes of the recurrent output and of the external input. During training, dropout of probability
-$p$ is applied to the input current.
+where $u_j(t)$ is the membrane potential at time bin $t$, $s_j(t) \in \{0, 1\}$ the spike emitted when $u_j$ crosses the threshold $\vartheta$, $\beta$ the membrane decay per time bin, $N$ the number of neurons and $W_{j,i,d}$ the weight from neuron $i$ to neuron $j$ at delay $d \in \{1, \dots, D\}$. The variables, their defaults and the initialisation rules are described on the [documentation home page](https://spikeai.github.io/MNESIS/).
 
-The global `Params` defaults in the current `datetag` use $\beta = 0.7$ and threshold
-$\vartheta = 0.75$; individual experiments override these in their local `opt_dict`
-(e.g. a different $\beta$ / $\vartheta$ pair). `Params`
-is the single source of hyperparameter truth; see the "Parameter drift" note below for
-why the prose, the paper, and the code need not always agree.
+## Notebooks
 
-### Variables
+The numbered notebooks in `src/` run from simple to complex; each one loads the cached artifacts of the previous one. The links below open the rendered version, with its outputs.
 
-Defaults are those of the `Params` dataclass in `src/mnesis_boilerplate.py`; one time bin is 1 ms.
+| # | Notebook | Experiment |
+|---|---|---|
+| 10 | [Generative model](https://spikeai.github.io/MNESIS/notebooks/10_MNESIS_generative-model.html) | Frozen and stochastic spiking motifs |
+| 11 | [Learning synthetic motifs](https://spikeai.github.io/MNESIS/notebooks/11_MNESIS_learn-synthetic.html) | Analytical initialisation and training on $M = 16$ motifs |
+| 13 | [Sequential retrieval](https://spikeai.github.io/MNESIS/notebooks/13_MNESIS_testing-inference.html) | Retrieval of the $M$ motifs in sequence |
+| 14 | [Noise robustness](https://spikeai.github.io/MNESIS/notebooks/14_MNESIS_testing-noise.html) | Bit-flip noise in the trigger window |
+| 15 | [Trigger duration](https://spikeai.github.io/MNESIS/notebooks/15_MNESIS_testing-trigger-duration.html) | Truncated trigger window |
+| 16 | [Neuron coverage](https://spikeai.github.io/MNESIS/notebooks/16_MNESIS_testing-trigger-fraction.html) | Neurons silenced in the trigger |
+| 18 | [Periodic motifs](https://spikeai.github.io/MNESIS/notebooks/18_MNESIS_learn-periodic.html) | Learning and retrieval of periodic memories |
+| 20 | [Parameter scans](https://spikeai.github.io/MNESIS/notebooks/20_MNESIS_scanning-parameters.html) | One-at-a-time scans of the parameters |
+| 25 | [Optuna optimisation](https://spikeai.github.io/MNESIS/notebooks/25_MNESIS_optuna.html) | Hyperparameter search |
+| 99 | [Run all](https://spikeai.github.io/MNESIS/notebooks/99_MNESIS_run-all.html) | Orchestrator of the full pipeline |
 
-| Symbol | Code name | Default | Role |
-|---|---|---|---|
-| $N$ | `N_neuron` | 1024 | number of neurons |
-| $D$ | `num_delay` | 41 time bins | number of delays per synapse, i.e. length of a spiking motif |
-| $M$ | `N_pattern` | 16 | number of stored motifs |
-| $T$ | `N_time` | 1000 time bins | duration of each motif |
-| $N_\mathrm{pretime}$ | `N_pretime` | 50 time bins | spontaneous activity before and after the stimulus |
-| $p_A$ | `p_A` | 0.00016 per time bin | prior probability of firing |
-| $p_\mathrm{flip}$ | `p_flip` | 0.01 | probability of flipping a bit in the stochastic pattern generator |
-| — | `seed` | 2026 | seed of the random number generators |
-| $\beta$ | `lif_beta` | 0.70 | membrane decay per time bin |
-| $\vartheta$, $\vartheta_0$ | `lif_threshold` | 0.75 (membrane potential, a.u.) | firing threshold |
-| — | `learn_beta`, `learn_threshold` | `False` | make $\beta$ and $\vartheta$ learnable |
-| — | `do_pinv`, `do_deconv` | `True` | pseudo-inverse solution and membrane deconvolution of the initialisation |
-| — | `num_epochs` | 256 | number of training epochs |
-| — | `num_warmup_epochs` | 16 | epochs of the learning-rate warmup ramp |
-| — | `base_lr`, `final_lr` | 0.04, 0.0004 | learning rates at the peak and at the end of the cosine schedule |
-| $\delta_1$, $\delta_2$ | `delta1`, `delta2` | 0.003, 0.00001 | complements to 1 of the optimiser coefficients (momentum, decay) |
-| $p$ | `dropout` | 0.60 | dropout probability |
-| $\alpha$ | `alpha_surrogate` | 5.0 | sharpness of the surrogate gradient (`FastSigmoid`) |
-| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of cross-validation seeds |
+## Quickstart
 
-### Analytical initialisation
+```bash
+pip install -r src/requirements.txt   # Python 3.10+
+cd src && jupyter notebook            # notebooks must be run from inside src/
+```
 
-The LIF membrane is a causal IIR lowpass. Two orthogonal flags control the closed-form
-initialisation in `HD_SNN.get_W_init()`:
+See [Installation & Quickstart](https://spikeai.github.io/MNESIS/installation.html) for the debug mode, the cache and how to build the paper.
 
-- **`do_deconv`** (default `True`) — deconvolve the membrane so the input current that
-  drives neuron $j$ to a target spike at time $t$ is
+## Repository layout
 
-  $$I^*_j(t) = \vartheta_0 \bigl(s^*_j(t) - \beta \cdot s^*_j(t-1)\bigr).$$
-
-  Here $\vartheta_0$ is the firing threshold (`lif_threshold`). With `do_deconv = False` the raw target $s^*_j(t)$ is used directly.
-
-- **`do_pinv`** (default `True`) — solve for $\mathbf{W}$ via the (numerically stable,
-  computed on CPU) full pseudo-inverse $\mathbf{W} = \mathrm{pinv}(\mathbf{C})\,\mathbf{T}$.
-  With `do_pinv = False` a Hebbian cross-correlation rule is used instead, relying on the
-  Gram-matrix approximation $\mathbf{C}\mathbf{C}^\top \approx N D p_A \mathbf{I}$:
-
-  $$w_{i,j,d} = \frac{1}{N \cdot D \cdot p_A \cdot M} \sum_{\mu,\,t} s_i^{*(\mu)}(t-d) \cdot \bigl(s_j^{*(\mu)}(t) - \beta \cdot s_j^{*(\mu)}(t-1)\bigr).$$
-
-  (When `do_pinv = False` this is the form quoted in the paper; the Gram-matrix
-  approximation makes the cross-correlation rule exact.) The default `do_pinv = True`
-  path is the most accurate and is what the camera-ready runs use.
-
-### Training
-
-- **Loss**: $\mathcal{L} = 1 - F_1$ (harmonic mean of precision and recall, evaluated after the trigger window) — `SpikeF1scoreLoss`
-- **Optimiser**: Adadelta by default (`adadelta`), configurable via `Params.optimizer` (also supports `sgd`, `adam`, `adamw`, `rmsprop`)
-- **Schedule**: cosine decay with a `num_warmup_epochs` warmup ramp (`final_lr` → `base_lr`)
-- **Surrogate**: fast sigmoid by default, sharpness $\alpha = 5.0$ — configurable via `Params.surrogate_name` / `Params.alpha_surrogate`
-- **Regularisation**: dropout $p = 0.6$, weight decay $\lambda = 0$
-- **LIF dynamics**: $\beta = 0.7$, $\vartheta = 0.75$, zero-reset (`zero`)
-- **Hardware**: Apple M3 Ultra (MPS) or NVIDIA GPU (CUDA / Jean Zay GENCI)
-
-> **Parameter drift.** As of the reconciliation run `2026-09-07` (the current `datetag`),
-> the `Params` defaults ($\beta = 0.7$, $\vartheta = 0.75$, $\alpha = 5$, `adadelta`,
-> dropout $0.6$) match the methods text of the paper. Earlier revisions of this README and
-> the camera-ready runs cite other values ($\beta = 0.8$, $\alpha = 12$, SGD, dropout
-> $0.10$). Each notebook also sets its own `opt_dict`. The code is authoritative for *what
-> the current default run does*; consult the specific `opt_dict` and
-> `tex/Perrinet26mnesis.pdf` for the exact value a given paper figure used.
-
-> An AI assistant was used to improve the readability and structure of this codebase — not to create it.
-
----
-
-## Results summary
-
-The values below are those quoted in the paper (`tex/Perrinet26mnesis.tex`). The caches of the
-current `datetag` may differ: in particular, notebook 20 now scans other grids
-($D \in [1, 60]$, $T \in [100, 1558]$, $N \in [50, 2000]$, $p_A \in [2 \times 10^{-4}, 5 \times 10^{-2}]$),
-so rerun the notebooks for up-to-date numbers.
-
-| Experiment | Key result (paper) |
+| Path | Content |
 |---|---|
-| Training ([NB 11](src/11_MNESIS_learn-synthetic.ipynb)) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
-| Sequential retrieval ([NB 13](src/13_MNESIS_testing-inference.ipynb)) | All 16 patterns retrieved without cross-interference |
-| Noise robustness ([NB 14](src/14_MNESIS_testing-noise.ipynb)) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$ |
-| Trigger duration ([NB 15](src/15_MNESIS_testing-trigger-duration.ipynb)) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
-| Neuron coverage ([NB 16](src/16_MNESIS_testing-trigger-fraction.ipynb)) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
-| Delay scan ([NB 20](src/20_MNESIS_scanning-parameters.ipynb)) | $\mathcal{L} \approx 0.85$ at $D=3$; $\mathcal{L} \to 0$ at $D=127$ |
-| Duration scan ([NB 20](src/20_MNESIS_scanning-parameters.ipynb)) | $\mathcal{L} \approx 0.004$ at $T=64$; $\mathcal{L} \approx 0.08$ at $T=2048$ |
-| Rate scan ([NB 20](src/20_MNESIS_scanning-parameters.ipynb)) | Optimal at $p_A \in [10^{-4}, 10^{-3}]$; degrades for $p_A \geq 2\times10^{-3}$ |
-| Periodic memory ([NB 18](src/18_MNESIS_learn-periodic.ipynb)) | Stable periodic retrieval with dedicated robustness evaluation under progressive bit-flip noise |
-| Full orchestrator ([NB 99](src/99_MNESIS_run-all.ipynb)) | Provides a single notebook entry point for sequential multi-notebook execution |
+| `src/` | Python modules (`mnesis_boilerplate.py`, `mnesis_chains.py`) and the numbered notebooks |
+| `figures/` | Figures written by the notebooks and read by the paper |
+| `tex/` | LaTeX source of the paper (build with `lualatex`) |
+| `docs/` | Sphinx sources of the documentation site |
+| `AGENTS.md` | Rules, commands and gotchas for developers and AI assistants |
 
 ---
 
@@ -301,13 +90,12 @@ so rerun the notebooks for up-to-date numbers.
 
 Machine-readable citation metadata is in [`CITATION.cff`](CITATION.cff).
 
----
-
-## License
+## Licence
 
 GPL-3.0 — see [LICENSE](LICENSE).
 
 ---
 
+*An AI assistant was used to improve the readability and structure of this codebase — not to create it.*
 *Institut de Neurosciences de la Timone (UMR 7289), Aix Marseille Université / CNRS, Marseille, France.*
 *Supported by GENCI-IDRIS (Grant 2025–AD010314955R2).*

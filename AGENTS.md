@@ -25,8 +25,9 @@ Around them:
 
 This file gives **rules, commands, and gotchas** for agents working in the
 repository; it is not a place for reference data. The full parameter catalogue,
-per-experiment results, cache inventory and notebook inventory live in
-`README.md` — point there for "what value / what result", and to the paper
+per-experiment results, cache inventory and notebook inventory live in the
+documentation (`docs/index.md`, `docs/installation.md`, `docs/experiments.md`) —
+point there for "what value / what result", and to the paper
 (`tex/Perrinet26mnesis.pdf`, built locally and git-ignored) for the camera-ready
 numbers.
 
@@ -199,8 +200,10 @@ The workflow `.github/workflows/static.yml` runs that build on every push to `ma
 and deploys `docs/_build/html` to GitHub Pages
 (<https://spikeai.github.io/MNESIS/>); never commit built HTML.
 
-- `docs/index.md` repeats the model equations, the variables table, the parameter
-  drift note and the results of `README.md`: change both together.
+- `docs/index.md` is the reference for the model equations, the variables table,
+  the parameter drift note and the results. `README.md` stays short: it repeats
+  only the membrane equation, the notebook list (linking to the rendered pages)
+  and the BibTeX entry — keep those in sync with the docs.
 - `docs/api.md` lists the documented members of `mnesis_boilerplate` explicitly:
   add any new public helper there.
 - The CI installs its own dependency list (CPU-only `torch`, `snntorch`, …), not
@@ -284,7 +287,7 @@ not a stray character.
   `Params` production defaults in `mnesis_boilerplate.py`. Older documents
   may still cite camera-ready values (β = 0.8, α = 12, SGD, dropout 0.10);
   robustness results (Fig. `fig:noise`) keep their own run's numbers. **Do not
-   "autocorrect" code defaults to match stale prose** — consult `README.md` /
+   "autocorrect" code defaults to match stale prose** — consult `docs/index.md` /
    `tex/Perrinet26mnesis.pdf` for the exact value a given figure used.
   Each notebook may also override defaults with its own local `opt_dict`.
 - **Bibliography toolchain.** The paper `.tex` file was migrated from `natbib`/`bibtex` to `biblatex`/`biber` (updates to `Perrinet26mnesis.tex`: replace `\usepackage{natbib}` with `\usepackage[style=numeric, sorting=none]{biblatex}` + `\addbibresource{mnesis.bib}`, and replace `\bibliographystyle{plainnat}\bibliography{mnesis}` with `\addbibresource{mnesis.bib}\printbibliography`; bibliography line `%!BIB TS-program = bibtex` → `%!BIB TS-program = biber). Do not revert these changes.
