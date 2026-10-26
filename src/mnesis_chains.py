@@ -9,7 +9,7 @@ methods, and a :func:`load` helper for trained checkpoints.
 """
 
 from mnesis_boilerplate import torch, np, nn, OrderedDict, surrogate, snn, snn_utils
-from mnesis_boilerplate import get_scores, get_cosine_schedule_with_warmup, SpikeF1scoreLoss
+from mnesis_boilerplate import get_scores, get_recall_time, get_cosine_schedule_with_warmup, SpikeF1scoreLoss
 from mnesis_boilerplate import flip_bits
 
 
@@ -149,7 +149,7 @@ class HD_SNN(nn.Module):
         self.net = nn.Sequential(OrderedDict([('lin', lin), ('dropout', dropout), ('lif', lif)]))
         self.net = self.net.to(opt.device)
           
-    def forward_pass(self, input_spikes, reset_spikes=None):
+    def forward_pass(self, input_spikes, reset_spikes=None, feedback=True):
         """Unroll the network over time and record its activations.
 
         Starting at ``t = num_delay``, each neuron receives the last
@@ -169,6 +169,11 @@ class HD_SNN(nn.Module):
                 ``(N_pattern, N_neuron, N_time)``.
             reset_spikes: Spikes to clamp off from the recurrent drive,
                 same shape as ``input_spikes``; ``None`` means no reset.
+            feedback: If ``False``, the output spikes are not fed back
+                (open loop): each neuron only sees the external input, so
+                that the replay cannot outlast the trigger by more than
+                ``num_delay`` steps. A control showing that the replay is
+                sustained by the recurrent positive feedback.
 
         Returns:
             tuple: ``(current, mem_rec, spikes)`` -- the post-synaptic
@@ -191,7 +196,7 @@ class HD_SNN(nn.Module):
         sync_every = 1000 if device.type == 'mps' else 0 # number of steps between two MPS synchronisations (0 = never)
 
         for t in range(self.opt.num_delay, N_time):
-            spike_window_A = spikes[:, :, (t - self.opt.num_delay):t]
+            spike_window_A = spikes[:, :, (t - self.opt.num_delay):t] * feedback
             spike_window_B = input_spikes[:, :, (t - self.opt.num_delay):t]
             spike_window_C = reset_spikes[:, :, (t - self.opt.num_delay):t]
             spike_window = (spike_window_A + spike_window_B - spike_window_C).clamp(0, 1)
@@ -325,6 +330,29 @@ class HD_SNN(nn.Module):
         # the cue: the last N_trigger_time steps of the spiking-motif window
         input_spikes[:, :, N_start:(N_pretime+self.opt.num_delay)] = target[:, :, (self.opt.num_delay-N_trigger_time):self.opt.num_delay]
         return input_spikes.to(self.opt.device).detach()
+
+    def get_recall_time(self, input_spikes, feedback=True, bin_width=None):
+        """Recall of each motif in successive bins of the evoked window.
+
+        Runs :meth:`forward_pass` and scores the evoked window against the
+        frozen motif with :func:`~mnesis_boilerplate.get_recall_time`.
+
+        Args:
+            input_spikes: External spikes, as built by :meth:`get_input_spikes`.
+            feedback: ``False`` for the open-loop control (see
+                :meth:`forward_pass`).
+            bin_width: Width of a time bin (time bins); defaults to
+                ``num_delay``.
+
+        Returns:
+            np.ndarray: recall of shape ``(N_pattern, N_bin)``.
+        """
+        if bin_width is None: bin_width = self.opt.num_delay
+        with torch.no_grad():
+            _, _, spikes = self.forward_pass(input_spikes, feedback=feedback)
+        spikes_evoked = spikes[:, :, (self.opt.N_pretime+self.opt.num_delay):(self.opt.N_time+self.opt.N_pretime)]
+        target_evoked = self.pattern_object.frozen_target[:, :, self.opt.num_delay:].to(spikes.device)
+        return get_recall_time(spikes_evoked, target_evoked, bin_width)
 
     def learn_model(self, verbose=True):
         """Train the delay weights by surrogate-gradient BPTT.
