@@ -6,7 +6,7 @@
 .. image:: https://img.shields.io/badge/License-GPL--3.0-green.svg
    :target: https://github.com/SpikeAI/MNESIS/blob/main/LICENSE
 .. image:: https://img.shields.io/badge/Paper-ICANN%202026-orange.svg
-   :target: https://laurentperrinet.github.io/publication/perrinet-26-icann/
+   :target: https://laurentperrinet.github.io/publication/perrinet-26/
 ```
 
 > **MNESIS** — *a Memory Network where Every Spike Is Sacred*
@@ -32,7 +32,7 @@ shared infrastructure and loads the cached artifacts produced by the previous on
 
 **Paper:** Laurent U. Perrinet (2026). *Working Memory in Recurrent Spiking Neural
 Networks With Heterogeneous Synaptic Delays*. ICANN 2026.
-[`https://laurentperrinet.github.io/publication/perrinet-26-icann/`](https://laurentperrinet.github.io/publication/perrinet-26-icann/)
+[`https://laurentperrinet.github.io/publication/perrinet-26/`](https://laurentperrinet.github.io/publication/perrinet-26/)
 
 ## Model
 
@@ -155,7 +155,7 @@ $[2 \times 10^{-4}, 5 \times 10^{-2}]$ is the one now reported in the paper.
   eprint        = {2604.14096},
   archivePrefix = {arXiv},
   doi           = {10.48550/arXiv.2604.14096},
-  url           = {https://laurentperrinet.github.io/publication/perrinet-26-icann/}
+  url           = {https://laurentperrinet.github.io/publication/perrinet-26/}
 }
 ```
 
