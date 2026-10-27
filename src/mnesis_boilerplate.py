@@ -835,7 +835,8 @@ def plot_recall_time(ax, recall_time, labels, recall_open=None, bin_width=1, cma
 
     Thin lines are single motifs (bistable: they stay near the recall of the
     intact trigger or fall to zero), thick lines their mean; the dashed black
-    line is the mean recall of the open-loop control.
+    line is the mean recall of the open-loop control, and the grey dashed
+    lines mark the extremal values 0 and 1.
 
     Args:
         ax (matplotlib.axes.Axes): axes to draw in.
@@ -846,6 +847,9 @@ def plot_recall_time(ax, recall_time, labels, recall_open=None, bin_width=1, cma
         bin_width (float): width of a time bin (ms).
         cmap (str): colormap of the levels.
     """
+    # guides first, so that they are drawn behind the curves
+    ax.axhline(0, color='0.7', ls='--', lw=0.8)
+    ax.axhline(1, color='0.7', ls='--', lw=0.8)
     colors = plt.get_cmap(cmap)(np.linspace(0, .85, len(recall_time)))
     for recall, label, color in zip(recall_time, labels, colors):
         time = np.arange(recall.shape[1]) * bin_width # start of each bin, drawn as steps
