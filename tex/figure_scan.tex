@@ -5,18 +5,18 @@
 %%%-----------------------------------------------------------------
 \begin{figure}[!t] 
   \centering
-  % the panels are printed at fig_width/3 by notebook 20, hence scaled by 3/4 here: use fig_width/4 at its next run
-  \includegraphics[width=0.25\linewidth]{scan_num_delay.pdf}\hfill
-  \includegraphics[width=0.25\linewidth]{scan_N_neuron.pdf}\hfill
-  \includegraphics[width=0.25\linewidth]{scan_N_time.pdf}\hfill
-  \includegraphics[width=0.25\linewidth]{scan_N_pattern.pdf}
+  % notebook 20 prints each panel at fig_width/2 = \textwidth/2, so that they print at scale 1
+  \includegraphics[width=0.5\linewidth]{scan_num_delay.pdf}%
+  \includegraphics[width=0.5\linewidth]{scan_N_neuron.pdf}\\
+  \includegraphics[width=0.5\linewidth]{scan_N_time.pdf}%
+  \includegraphics[width=0.5\linewidth]{scan_N_pattern.pdf}
   % TODO \includegraphics[width=0.9\linewidth]{scan_p_A.pdf}
   \caption{%
     Effect of some key parameters on working-memory performance ($F_1$ score over $10$ independent runs, each training a new network on new patterns drawn from its own random seed, a given seed sharing its patterns across all values of a parameter; bars show the mean over these runs, and whiskers span the $5\%$ to $95\%$ quantiles of a beta distribution fitted to them). %
-    \emph{From left to right:}
-    The $F_1$ score rises steeply with the maximum delay $D$ and with the number of neurons $N$: both increase the mean number $p_A N D$ of spikes in a context window, and thus decrease the probability that a motif contains a gap of $D$ silent steps, at which its replay stops. %
-    It decreases slowly with the pattern duration $T$, as a longer motif is more likely to contain such a gap. %
-    It does not depend on the number of stored motifs $M$ over the scanned range, up to $M = 26$.
+    \emph{Top:}
+    The $F_1$ score rises steeply with the maximum delay $D$ (left) and with the number of neurons $N$ (right): both increase the mean number $p_A N D$ of spikes in a context window, and thus decrease the probability that a motif contains a gap of $D$ silent steps, at which its replay stops. %
+    \emph{Bottom:}
+    It decreases slowly with the motif duration $T$ (left), as a longer motif is more likely to contain such a gap, and does not depend on the number of stored motifs $M$ over the scanned range, up to $M = 26$ (right).
   }\label{fig:scan}
 \end{figure}
 %%%-----------------------------------------------------------------
