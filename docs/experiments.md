@@ -41,13 +41,14 @@ build — run them yourself as described in {doc}`installation`).
 ## Robustness tests
 
 In the three score figures, thin lines show the $F_1$ score of each motif
-(averaged over the `N_cv` realisations): under the deterministic perturbations
+(averaged over the 11 seeded realisations of each value): under the deterministic perturbations
 (truncation, lesion) each motif switches between zero and its intact value at
 its own threshold, the all-or-nothing ignition of the replay.
 
 - {doc}`NB 14: Noise robustness <notebooks/14_MNESIS_testing-noise>` — bit-flip noise on the trigger
-  window ($p_\mathrm{flip} \in [0, 1]$), with fixed weights and, as a control,
-  with the network fine-tuned at each noise level. The paper reports
+  window ($p_\mathrm{flip} \in [0, 1]$; 14 values, 11 seeded realisations each), with
+  fixed weights. The fine-tuned control (`noise_retrain`) has no saved result yet:
+  only its lock file exists. The paper reports
   $F_1 \approx 0.53$ at $p_\mathrm{flip} = 0.25$, below 0.1 beyond $0.6$. Both
   score figures overlay the $F_1$ expected from theory for a motif-wise
   ignition of the replay. The replay is a cascade, a positive feedback loop
@@ -60,14 +61,16 @@ its own threshold, the all-or-nothing ignition of the replay.
   sustained by the recurrence. Figures: `p_flip_target`, `p_flip_score`,
   `p_flip_retrain_score`, `p_flip_cascade`.
 - {doc}`NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>` — truncated trigger
-  window; finds the minimum cue length for reliable recall. The paper reports
+  window (41 values of `N_trigger_time`, 11 seeded realisations each); finds the
+  minimum cue length for reliable recall. The paper reports
   $F_1 \approx 0.79$ at 75% of $D$. The same cascade model, with the last
   `N_trigger_time` bins of the window shown, predicts the curve: the support of
   the first evoked spike is more recent than a whole window, and so better
   shown than the fraction `N_trigger_time / num_delay`. Figures: `trigger_time`,
   `trigger_time_score`, `trigger_time_cascade`.
 - {doc}`NB 16: Neuron coverage <notebooks/16_MNESIS_testing-trigger-fraction>` — partial neuron coverage
-  (0 to $N$ neurons silenced in the trigger). The paper reports
+  (0 to $N$ neurons silenced in the trigger; 14 values, 11 seeded realisations
+  each). The paper reports
   $F_1 \approx 0.76$ with 87.5% of neurons active. The same cascade model, with
   a fraction `1 - n / N` of the neurons shown, predicts the curve. Figures:
   `fraction_target`, `fraction_target_score`, `fraction_target_cascade`.
@@ -83,7 +86,8 @@ its own threshold, the all-or-nothing ignition of the replay.
   its text only). All the scans are complete: 940 runs, in the files
   `{datetag}_scan_{key}.json`.
 - {doc}`NB 25: Optuna optimisation <notebooks/25_MNESIS_optuna>` — automated hyperparameter search with
-  [Optuna](https://optuna.org/) (multivariate TPE, 200 trials of 128 epochs)
+  [Optuna](https://optuna.org/) (multivariate TPE, 200 trials of 128 epochs launched: 197 completed, 3 still marked
+  as running in the study database)
   over the initialisation flags, the optimiser, the LIF parameters ($\beta$,
   $\vartheta$, reset mechanism, learnt or not), the surrogate sharpness, the
   learning rates and the dropout rate. Its figure is displayed, not saved.
@@ -99,7 +103,8 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 
 - {doc}`NB 18: Periodic motifs <notebooks/18_MNESIS_learn-periodic>` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
-  noise. Only `periodic_scores` ($F_1$ per period of free replay against time,
+  noise. Its transmission-failure sweep covers 5 values of $p_\mathrm{drop}$, with 5
+  seeded realisations each, over 100 periods. Only `periodic_scores` ($F_1$ per period of free replay against time,
   one period of 959 steps lasting 0.959 s; one curve per $p_\mathrm{flip}$) is
   saved, for the paper; the other `periodic_*` figures are
   displayed, not saved.

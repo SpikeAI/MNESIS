@@ -78,7 +78,7 @@ Defaults are those of the {class}`~mnesis_boilerplate.Params` dataclass; one tim
 | $\delta_1$, $\delta_2$ | `delta1`, `delta2` | 0.003, 0.00001 | complements to 1 of the optimiser coefficients (momentum, decay) |
 | $p$ | `dropout` | 0.60 | dropout probability |
 | $\alpha$ | `alpha_surrogate` | 5.0 | sharpness of the surrogate gradient (`FastSigmoid`) |
-| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of independent repetitions (random seeds) per value |
+| — | `N_scan`, `N_cv` | 14, 11 | number of values per scan, number of seeded repetitions per value: 11 in notebooks 14–16 (the default); notebook 20 sets `N_cv = 10` locally |
 
 ### Analytical initialisation
 
