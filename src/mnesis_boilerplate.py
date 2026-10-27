@@ -232,7 +232,7 @@ def printfig(fig, name='', fig_width=12, fig_height=None, exts=['pdf', 'png', 's
             inside the canvas); ``None`` keeps a manual ``subplots_adjust``.
     """
     if fig_height is None: fig_height = fig_width/phi
-    cm = 1/2.54  # centimeters in inches
+    cm = 1/2.54  # inches per centimetre: matplotlib sizes figures in inches, the sizes above are in cm
     fig.set_size_inches((fig_width*cm, fig_height*cm))
     if layout is not None: fig.set_layout_engine(layout)
     if figpath is not None: 
