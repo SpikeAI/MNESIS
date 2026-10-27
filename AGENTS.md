@@ -49,7 +49,7 @@ notebooks (*.ipynb)
 
 | File | Role |
 |---|---|
-| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, `get_f1_ignition` (F1 expected from theory for a noisy, truncated or lesioned trigger: the replay is a cascade decided by its first evoked spike), `get_f1_cascade` (the same cascade, simulated), `get_recall_time` / `plot_recall_time` (recall of each motif against time), cosine LR schedule, `purge_unfinished_scans`). |
+| `src/mnesis_boilerplate.py` | Entry-point imports (torch, snntorch, …), device auto-detection (MPS → CUDA → CPU), `DEBUG` / `RECOMPUTE` / `datetag` switches, `Params` dataclass (single source of hyperparameter truth), global matplotlib style (`STYLE`, Latin Modern to match the paper), utilities (`flip_bits`, `printfig`, `get_scores`, `SpikeF1scoreLoss`, `get_f1_ignition` (F1 expected from theory for a noisy, truncated or lesioned trigger: the replay is a cascade decided by its first evoked spike), `get_f1_cascade` (the same cascade, simulated), `get_recall_time` / `plot_recall_time` (recall of each motif against time), cosine LR schedule, `cache_lock` (context manager holding a cache file's `.lock`), `purge_unfinished_scans`). |
 | `src/mnesis_chains.py` | Pattern generators (`SpikingPattern`, `StochasticSpikingPattern`) and the `HD_SNN` class (`forward_pass`, with `feedback=False` for the open-loop control, `get_W_init`, `update_weight`, `get_recall_time`, `learn_model`); also a `load()` helper for trained checkpoints. |
 
 Notebooks (`src/*.ipynb`) are numbered simple → complex, each loading cached
@@ -101,6 +101,9 @@ sentinel file guards against concurrent runs of the same scan.
 3. If no lock file exists, create one and start processing.
 4. For each parameter value, skip it if already computed; otherwise run the scan and append to the JSON.
 5. Delete the lock file when done.
+Steps 3 and 5 go through `with cache_lock(filename) as acquired:` (`mnesis_boilerplate`):
+the lock is created atomically and released in a `finally`, so an exception or an
+interrupt no longer leaves a stale lock (notebook 20 does the same inline).
 This avoids data corruption and allows safe incremental resumption — never delete
 a `.lock` out from under a running scan. A scan reserves a placeholder row
 (`loss=null`, `time=0.0`) before computing it; if the process dies, that row would

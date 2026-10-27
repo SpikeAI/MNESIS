@@ -6,12 +6,15 @@ dataclass that is the single source of hyperparameter truth, and the
 utilities reused by :mod:`mnesis_chains` and all notebooks: random bit
 flipping (:func:`flip_bits`), figure saving (:func:`printfig`), spike-score
 metrics (:func:`get_scores`, :func:`get_f1score`,
-:class:`SpikeF1scoreLoss`), the F1 scores expected from theory under trigger
-noise (:func:`get_f1_noisy_copy`, :func:`get_f1_ignition`) and the cosine learning-rate schedule
-(:func:`get_cosine_schedule_with_warmup`).
+:class:`SpikeF1scoreLoss`), the F1 scores expected from theory for a degraded
+trigger (:func:`get_f1_noisy_copy`, :func:`get_f1_ignition`, and the simulated
+cascade :func:`get_f1_cascade`), the recall of each motif against time
+(:func:`get_recall_time`, :func:`plot_recall_time`) and the cosine learning-rate
+schedule (:func:`get_cosine_schedule_with_warmup`).
 """
 
 from pathlib import Path
+from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 import os
 import json
@@ -118,7 +121,7 @@ class Params:
     fig_height: float = 15.92/phi             # height of figure in cm
     N_time_show: int = N_time                # number of time points to show in plots
     N_neuron_show: int = N_neuron              # number of SM to show in plots
-    i_pattern: int = 0                     # index of the motif shown in plots
+    i_pattern: int = 1                     # index of the motif shown in plots
     N_scan: int = 13 // DEBUG + 1        # number of values to scan
     N_cv: int = 10 // DEBUG + 1        # number of independent repetitions (random seeds) per scan value
 
@@ -290,6 +293,34 @@ def approx_equals(series, value, rtol=1e-6, atol=1e-12):
         return np.isclose(series.astype(float), float(value), rtol=rtol, atol=atol)
     except (TypeError, ValueError):
         return series == value
+
+@contextmanager
+def cache_lock(filename):
+    """Hold the ``.lock`` sentinel of a cache file while this file is computed.
+
+    The lock is taken atomically (``O_EXCL``), so two processes started together
+    cannot both compute the same file. It is released in a ``finally`` clause, so
+    an exception or an interrupt during the computation does not leave a stale
+    lock behind, which would make every later run skip the computation.
+
+    Args:
+        filename: Path of the cache file to compute; the lock is the same path with a ``.lock`` suffix.
+
+    Yields:
+        True if this process now holds the lock and should compute the file;
+        False if the lock already exists (another process is computing the file,
+        or one died before releasing it), in which case nothing is removed.
+    """
+    lock_filename = Path(filename).with_suffix('.lock')
+    try:
+        lock_filename.touch(exist_ok=False) # atomic: fails if the lock already exists
+    except FileExistsError:
+        yield False
+        return
+    try:
+        yield True
+    finally:
+        lock_filename.unlink(missing_ok=True)
 
 def purge_unfinished_scans(datetag=None, data_cache=data_cache, ignore_locks=False, remove_locks=False, dry_run=False):
     """Remove the placeholder rows left by interrupted scans, so they are recomputed.

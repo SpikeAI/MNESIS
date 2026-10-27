@@ -51,9 +51,9 @@ prefixed by the current `datetag` (the batch date, ISO 8601):
 | `{datetag}_init.pth` | 11 | Analytically initialised weights (pseudo-inverse or Hebbian, deconvolved or not) |
 | `{datetag}_vanilla.pth` | 11 | Trained model weights after gradient steps, loaded by 13–16 |
 | `{datetag}_score.npy` | 13 | Sliding-window $F_1$ trajectory of the sequential retrieval |
-| `{datetag}_noise.npz`, `{datetag}_noise_retrain.npz` | 14 | $F_1$ versus $p_\mathrm{flip}$ (fixed weights / fine-tuned), shape `(N_scan, N_cv)` |
-| `{datetag}_trigger_time.npz` | 15 | $F_1$ versus trigger duration |
-| `{datetag}_N_neurons.npz` | 16 | $F_1$ versus number of silenced trigger neurons |
+| `{datetag}_noise.npz`, `{datetag}_noise_retrain.npz` | 14 | $F_1$ versus $p_\mathrm{flip}$ (fixed weights / fine-tuned), shape `(N_scan, N_cv)`; the fixed-weights file also holds the $F_1$ of each motif, `scores_motif_np` of shape `(N_scan, N_cv, N_pattern)` |
+| `{datetag}_trigger_time.npz` | 15 | $F_1$ versus trigger duration, shape `(num_delay, N_cv)`, and of each motif, `scores_motif_np` of shape `(num_delay, N_cv, N_pattern)` |
+| `{datetag}_N_neurons.npz` | 16 | $F_1$ versus number of silenced trigger neurons, shape `(N_scan, N_cv)`, and of each motif, `scores_motif_np` of shape `(N_scan, N_cv, N_pattern)` |
 | `{datetag}_periodic.pth`, `{datetag}_periodic_spikes.pth`, `{datetag}_periodic_spikes_noisy.pth` | 18 | Periodic-memory weights and retrieved rasters (clean / noisy) |
 | `{datetag}_periodic-with-noise_N_period={N_period}.npz` | 18 | Periodic-memory robustness: $F_1$ per period of free replay for each noise level (`p_flip`, `scores_np`) |
 | `{datetag}_scan_{key}.json` (+ `.lock`) | 20 | Parameter sweep results (`key`, `i_cv`, `loss`, `time` per row) |

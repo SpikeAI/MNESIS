@@ -40,10 +40,15 @@ build — run them yourself as described in {doc}`installation`).
 
 ## Robustness tests
 
+In the three score figures, thin lines show the $F_1$ score of each motif
+(averaged over the `N_cv` realisations): under the deterministic perturbations
+(truncation, lesion) each motif switches between zero and its intact value at
+its own threshold, the all-or-nothing ignition of the replay.
+
 - {doc}`NB 14: Noise robustness <notebooks/14_MNESIS_testing-noise>` — bit-flip noise on the trigger
   window ($p_\mathrm{flip} \in [0, 1]$), with fixed weights and, as a control,
   with the network fine-tuned at each noise level. The paper reports
-  $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$, chance only near $0.5$. Both
+  $F_1 \approx 0.53$ at $p_\mathrm{flip} = 0.25$, below 0.1 beyond $0.6$. Both
   score figures overlay the $F_1$ expected from theory for a motif-wise
   ignition of the replay. The replay is a cascade, a positive feedback loop
   decided by its first evoked spike, which fires only if a fraction
@@ -56,14 +61,14 @@ build — run them yourself as described in {doc}`installation`).
   `p_flip_retrain_score`, `p_flip_cascade`.
 - {doc}`NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>` — truncated trigger
   window; finds the minimum cue length for reliable recall. The paper reports
-  $F_1 \approx 0.42$ at 75% of $D$. The same cascade model, with the last
+  $F_1 \approx 0.79$ at 75% of $D$. The same cascade model, with the last
   `N_trigger_time` bins of the window shown, predicts the curve: the support of
   the first evoked spike is more recent than a whole window, and so better
   shown than the fraction `N_trigger_time / num_delay`. Figures: `trigger_time`,
   `trigger_time_score`, `trigger_time_cascade`.
 - {doc}`NB 16: Neuron coverage <notebooks/16_MNESIS_testing-trigger-fraction>` — partial neuron coverage
   (0 to $N$ neurons silenced in the trigger). The paper reports
-  $F_1 \approx 0.60$ with 87.5% of neurons active. The same cascade model, with
+  $F_1 \approx 0.76$ with 87.5% of neurons active. The same cascade model, with
   a fraction `1 - n / N` of the neurons shown, predicts the curve. Figures:
   `fraction_target`, `fraction_target_score`, `fraction_target_cascade`.
 
@@ -92,8 +97,9 @@ appended incrementally to the JSON, and runs can be safely resumed. See
 
 - {doc}`NB 18: Periodic motifs <notebooks/18_MNESIS_learn-periodic>` — builds periodic targets, trains
   periodic memories, and evaluates retrieval robustness under increasing input
-  noise. Only `periodic_scores` ($F_1$ per period of free replay, one curve per
-  $p_\mathrm{flip}$) is saved, for the paper; the other `periodic_*` figures are
+  noise. Only `periodic_scores` ($F_1$ per period of free replay against time,
+  one period of 959 steps lasting 0.959 s; one curve per $p_\mathrm{flip}$) is
+  saved, for the paper; the other `periodic_*` figures are
   displayed, not saved.
 
 ## Orchestrator

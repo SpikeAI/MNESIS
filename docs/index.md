@@ -135,9 +135,9 @@ $[2 \times 10^{-4}, 5 \times 10^{-2}]$ is the one now reported in the paper.
 |---|---|
 | Training ({doc}`NB 11 <notebooks/11_MNESIS_learn-synthetic>`) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
 | Sequential retrieval ({doc}`NB 13 <notebooks/13_MNESIS_testing-inference>`) | 12 of the 16 motifs replayed to the end (mean $F_1 \approx 0.96$); for the other 4, the replay breaks down after about 200–600 steps (mean $F_1 = 0.80$ over all 16) |
-| Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.63$ at $p_\mathrm{flip} = 0.25$; chance only near $p_\mathrm{flip} = 0.5$; follows a motif-wise ignition model of the replay with no fitted parameter |
-| Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.42$ at 75% of $D$; rises steeply above $D/2$ |
-| Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.60$ with 87.5% of neurons active in trigger |
+| Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.53$ at $p_\mathrm{flip} = 0.25$; below 0.1 beyond $p_\mathrm{flip} \approx 0.6$; follows a motif-wise ignition model of the replay with no fitted parameter |
+| Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.79$ at 75% of $D$; rises steeply above $D/2$; follows the cascade model of the replay with no fitted parameter |
+| Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.76$ with 87.5% of neurons active in trigger |
 | Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.15$ at $D=3$; $F_1 \to 1$ at $D=127$ |
 | Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.996$ at $T=64$; $F_1 \approx 0.92$ at $T=2048$ |
 | Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.98$ for $p_A \in [3\times10^{-4}, 1.3\times10^{-3}]$; $F_1 \approx 0.70$ at $p_A \approx 3\times10^{-2}$ |
