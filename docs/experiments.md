@@ -28,15 +28,15 @@ build — run them yourself as described in {doc}`installation`).
 ## Learning and retrieval on synthetic motifs
 
 - {doc}`NB 11: Learning synthetic motifs <notebooks/11_MNESIS_learn-synthetic>` — trains the network on
-  $M = 16$ synthetic sparse patterns. Demonstrates that the analytical init
+  $M = 16$ synthetic sparse motifs. Demonstrates that the analytical init
   alone reaches high $F_1$; gradient training with a cosine schedule then
   improves noise robustness. Figures: `pattern`, `target_init`, `target`,
   `histogram_log`.
 - {doc}`NB 13: Sequential retrieval <notebooks/13_MNESIS_testing-inference>` — concatenates all $M = 16$
-  patterns in sequence, separated by silent inter-trial intervals
+  motifs in sequence, separated by silent inter-trial intervals
   ($4 N_\mathrm{pretime} = 200$ steps on each side, no spontaneous activity); evaluates the $F_1$ score in consecutive
-  60-step windows against the frozen motifs: 12 of the 16 motifs are replayed to the end, while the
-  replay of the other 4 breaks down after about 200–600 steps. Figure: `retrieval` (plus `.mp4`).
+  60-step windows against the frozen motifs: 9 of the 16 motifs are replayed exactly ($F_1 = 1$), 4 stop at a gap of $D$
+  silent steps and 3 are over-active (mean $F_1$ 0.79–0.84 over realisations, 0.96 without the 4 motifs with a gap). Figure: `retrieval` (plus `.mp4`).
 
 ## Robustness tests
 
@@ -62,7 +62,7 @@ its own threshold, the all-or-nothing ignition of the replay.
   `p_flip_retrain_score`, `p_flip_cascade`.
 - {doc}`NB 15: Trigger duration <notebooks/15_MNESIS_testing-trigger-duration>` — truncated trigger
   window (41 values of `N_trigger_time`, 11 seeded realisations each); finds the
-  minimum cue length for reliable recall. The paper reports
+  minimum trigger-window length for reliable recall. The paper reports
   $F_1 \approx 0.79$ at 75% of $D$. The same cascade model, with the last
   `N_trigger_time` bins of the window shown, predicts the curve: the support of
   the first evoked spike is more recent than a whole window, and so better

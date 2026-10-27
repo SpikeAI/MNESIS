@@ -13,14 +13,14 @@
 
 This documentation covers the full implementation and experiments of **MNESIS**, a
 recurrent spiking neural network (SNN) with heterogeneous synaptic delays that stores
-and recalls arbitrary spike patterns as sequential chains of overlapping Spiking Motifs.
+and recalls arbitrary motifs as sequential chains of overlapping Spiking Motifs.
 
 ## Overview
 
 Working memory in biological neural circuits relies on precise spike timing rather than
 sustained firing rates. MNESIS models this by equipping every synapse with $D$ learnable
 delays, parameterised as a single weight tensor $\mathbf{W} \in \mathbb{R}^{N \times N \times D}$.
-Each stored pattern is encoded as a chain of overlapping **Spiking Motifs**: contiguous
+Each stored motif is encoded as a chain of overlapping **Spiking Motifs**: contiguous
 context windows of length $D$ that uniquely predict the next time step of activity.
 A closed-form initialisation derived by deconvolving the LIF membrane response reaches
 near-perfect recall before any gradient step, while surrogate-gradient BPTT then adds
@@ -47,7 +47,7 @@ its spike (emitted when $u_j(t)$ crosses the threshold $\vartheta$, after which 
 reset to zero), $\beta$ the membrane decay per time bin, and $W_{j,i,d}$ the weight from neuron
 $i$ to neuron $j$ at delay $d$. In the code, $\mathbf{W}$ is the `lin` layer of
 {class}`~mnesis_chains.HD_SNN`, of shape `(N_neuron, N_neuron * num_delay)`. During training,
-dropout of probability $p$ is applied to the input current.
+dropout of probability $p$ is applied to the post-synaptic current.
 
 The motifs are drawn by {class}`~mnesis_chains.SpikingPattern` as a frozen Bernoulli raster of
 rate $p_A$; {class}`~mnesis_chains.StochasticSpikingPattern` returns realisations of it in which
@@ -135,7 +135,7 @@ scores quoted.
 | Experiment | Key result (paper) |
 |---|---|
 | Training ({doc}`NB 11 <notebooks/11_MNESIS_learn-synthetic>`) | High $F_1$ with analytical init alone; gradient training adds noise robustness |
-| Sequential retrieval ({doc}`NB 13 <notebooks/13_MNESIS_testing-inference>`) | 12 of the 16 motifs replayed to the end (mean $F_1 \approx 0.96$); for the other 4, the replay breaks down after about 200–600 steps (mean $F_1 = 0.80$ over all 16) |
+| Sequential retrieval ({doc}`NB 13 <notebooks/13_MNESIS_testing-inference>`) | 9 of the 16 motifs replayed exactly ($F_1 = 1$), 4 stop at a gap of $D$ silent steps, 3 are over-active; mean $F_1$ 0.79–0.84 over realisations (0.96 without the 4 motifs with a gap) |
 | Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.53$ at $p_\mathrm{flip} = 0.25$; below 0.1 beyond $p_\mathrm{flip} \approx 0.6$; follows a motif-wise ignition model of the replay with no fitted parameter |
 | Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.79$ at 75% of $D$; rises steeply above $D/2$; follows the cascade model of the replay with no fitted parameter |
 | Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.76$ with 87.5% of neurons active in trigger |
@@ -144,7 +144,7 @@ scores quoted.
 | Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.97$ at $T=100$; $F_1 \approx 0.88$ at $T=945$; $F_1 \approx 0.78$ at $T=1558$ |
 | Motif-number scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1$ between 0.84 and 0.94, with no trend, from $M=3$ to $M=26$ |
 | Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.98$ for $p_A \in [3\times10^{-4}, 3\times10^{-3}]$; $F_1 \approx 0.94$ at $2\times10^{-2}$; $F_1 \approx 0.69$ at $p_A \approx 3\times10^{-2}$ |
-| Periodic memory ({doc}`NB 18 <notebooks/18_MNESIS_learn-periodic>`) | Stable periodic retrieval under progressive bit-flip noise |
+| Periodic memory ({doc}`NB 18 <notebooks/18_MNESIS_learn-periodic>`) | Replay sustained for 30 periods without failures ($F_1 \approx 0.83$ from the second period on; 12 of 16 motifs re-trigger themselves); with transmission failures $p_\mathrm{drop}$, the lifetime falls from $\approx 280$ periods at $10^{-4}$ to $\approx 2$ at $10^{-2}$ |
 
 ## Citation
 

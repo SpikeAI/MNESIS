@@ -7,7 +7,7 @@
 
 > **MNESIS** — *a Memory Network where Every Spike Is Sacred*
 
-MNESIS is a recurrent spiking neural network (SNN) with heterogeneous synaptic delays that stores and recalls arbitrary spike patterns as sequential chains of overlapping Spiking Motifs. Every synapse carries $D$ learnable delays; a closed-form initialisation, obtained by deconvolving the LIF membrane response, reaches near-perfect recall before any gradient step, and surrogate-gradient training then adds robustness to noise.
+MNESIS is a recurrent spiking neural network (SNN) with heterogeneous synaptic delays that stores and recalls arbitrary motifs as sequential chains of overlapping Spiking Motifs. Every synapse carries $D$ learnable delays; a closed-form initialisation, obtained by deconvolving the LIF membrane response, reaches near-perfect recall before any gradient step, and surrogate-gradient training then adds robustness to noise.
 
 This repository holds the implementation, the experiment notebooks and the LaTeX source of the paper.
 

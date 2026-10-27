@@ -356,7 +356,7 @@ not a stray character.
 ## Conventions & gotchas
 
 - **Parameter drift.** As of the reconciliation run `2026-09-07`, the paper
-  methods text (β = 0.7, τ ≈ 2.8 steps; ϑ = 0.75, δ = 0.25; p_flip = 0.01;
+  methods text (β = 0.7, τ ≈ 2.8 ms; ϑ = 0.75, δ = 0.25; p_flip = 0.01;
   FastSigmoid α = 5; adadelta; η 40→0.4 mLR; dropout 0.6) matches the
   `Params` production defaults in `mnesis_boilerplate.py`. Older documents
   may still cite camera-ready values (β = 0.8, α = 12, SGD, dropout 0.10);
