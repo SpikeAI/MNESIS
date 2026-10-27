@@ -43,7 +43,6 @@
     weights/.style={draw=blue!80!black, line width=1.3pt, -{stealth[length=2.6mm,width=2.0mm]}},
     thr/.style={draw=orange!55!brown!85!black, line width=1.3pt, -{stealth[length=2.6mm,width=2.0mm]}},
     labelbeta/.style={above, font=\papersmall, text=cyan!60!black, midway},
-    labelweights/.style={above, sloped, font=\papersmall, text=blue!80!black, pos=0.50},
     labelthr/.style={above, sloped, font=\papersmall, text=orange!55!brown!85!black, midway},
   ]
 
@@ -60,15 +59,13 @@
   \newcommand{\colpos}[2]{({\colSep*#1,#2})}
   \def\tLabelY{-3.15}  % rows 1.45 cm apart and t labels low: room under X[t] for the x axis of pattern.pdf
   \def\ellipsisX{9.20}
-  \def\blueRise{0.95}
-  \def\blueRun{1.15}
  
   % Positions for the three time steps
   % (Removed manual coordinate definitions)
  
     % Layer nodes
     \foreach \i/\tl in {0/{t-1},1/{t},2/{t+1}} {
-     \node[rect=blue!55!black]           (X\i) at (\colSep*\i, \xY) {$\tilde{s}(\tl)$};
+     \node[rect=blue!55!black]           (X\i) at (\colSep*\i, \xY) {$\mathbf{c}(\tl)$};
      \node[rect=cyan!60!black]           (I\i) at (\colSep*\i, \iY) {$I(\tl)$};
      \node[rect=orange!70!brown!85!black](S\i) at (\colSep*\i, \sY) {$s(\tl)$};
      \node[rect=red!55!black]            (U\i) at (\colSep*\i, \uY) {$u(\tl)$};
@@ -83,7 +80,7 @@
 
     % Vertical input chain
     \foreach \i in {0,1,2} {
-     \draw[spike] (X\i.north) -- node[midway, right=2pt, font=\papersmall] {$W_0$} (I\i.south);
+     \draw[weights] (X\i.north) -- node[midway, right=2pt, font=\papersmall] {$\mathbf{W}$} (I\i.south);
      \draw[spike] (I\i.north) -- (U\i.south);
      \draw[spike] (U\i.north) -- (S\i.south);
     }
@@ -94,12 +91,6 @@
      \draw[thr]  (S\i.east) -- node[labelthr]  {$-\vartheta$} (U\j.north west);
     }
 
-     % Input weights between successive columns
-      % \draw[weights] (-1.55,-1.25) -- node[labelweights] {$W_{-1}$} (I0.south west);
-      \draw[weights] (X0.north east) -- node[labelweights] {$W_{-1}$} (I1.south west);
-      \draw[weights] (X1.north east) -- node[labelweights] {$W_{-1}$} (I2.south west);
-      \draw[weights] (X2.north east) -- node[labelweights] {$W_{-1}$} ++(\blueRun,\blueRise);
- 
   % Time labels
   \node[font=\papernormalsize] at (0,\tLabelY) {$t-1$};
   \node[font=\papernormalsize] at (\colSep,\tLabelY) {$t$};
