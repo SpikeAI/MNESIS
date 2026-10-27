@@ -126,10 +126,11 @@ exact value a given figure used.
 
 ## Results summary
 
-The values below are those quoted in the paper. The caches of the current `datetag`
-may differ: in particular, notebook 20 now scans other grids ($D \in [1, 60]$,
-$T \in [100, 1558]$, $N \in [50, 2000]$). The $p_A$ scan over
-$[2 \times 10^{-4}, 5 \times 10^{-2}]$ is the one now reported in the paper.
+The values below are those quoted in the paper. The scans of notebook 20 are
+complete in the caches of the current `datetag` (940 runs: 10 per value, over the
+grids $D \in [1, 60]$, $T \in [100, 1558]$, $N \in [50, 2000]$, $M \in [1, 26]$ and
+$p_A \in [2 \times 10^{-4}, 5 \times 10^{-2}]$), and the means of these runs are the
+scores quoted.
 
 | Experiment | Key result (paper) |
 |---|---|
@@ -138,9 +139,11 @@ $[2 \times 10^{-4}, 5 \times 10^{-2}]$ is the one now reported in the paper.
 | Noise robustness ({doc}`NB 14 <notebooks/14_MNESIS_testing-noise>`) | $F_1 \approx 0.53$ at $p_\mathrm{flip} = 0.25$; below 0.1 beyond $p_\mathrm{flip} \approx 0.6$; follows a motif-wise ignition model of the replay with no fitted parameter |
 | Trigger duration ({doc}`NB 15 <notebooks/15_MNESIS_testing-trigger-duration>`) | $F_1 \approx 0.79$ at 75% of $D$; rises steeply above $D/2$; follows the cascade model of the replay with no fitted parameter |
 | Neuron coverage ({doc}`NB 16 <notebooks/16_MNESIS_testing-trigger-fraction>`) | $F_1 \approx 0.76$ with 87.5% of neurons active in trigger |
-| Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.15$ at $D=3$; $F_1 \to 1$ at $D=127$ |
-| Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.996$ at $T=64$; $F_1 \approx 0.92$ at $T=2048$ |
-| Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.98$ for $p_A \in [3\times10^{-4}, 1.3\times10^{-3}]$; $F_1 \approx 0.70$ at $p_A \approx 3\times10^{-2}$ |
+| Delay scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0$ for $D \le 15$; $F_1 \approx 0.86$ at $D=40$; $F_1 > 0.95$ from $D=50$ |
+| Size scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0$ up to $N \approx 430$; $F_1 \approx 0.93$ at $N=1081$; $F_1 \approx 0.97$ from $N \approx 1500$; $D$ and $N$ act through $p_A N D$ |
+| Duration scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.97$ at $T=100$; $F_1 \approx 0.88$ at $T=945$; $F_1 \approx 0.78$ at $T=1558$ |
+| Motif-number scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1$ between 0.84 and 0.94, with no trend, from $M=3$ to $M=26$ |
+| Rate scan ({doc}`NB 20 <notebooks/20_MNESIS_scanning-parameters>`) | $F_1 \approx 0.98$ for $p_A \in [3\times10^{-4}, 3\times10^{-3}]$; $F_1 \approx 0.94$ at $2\times10^{-2}$; $F_1 \approx 0.69$ at $p_A \approx 3\times10^{-2}$ |
 | Periodic memory ({doc}`NB 18 <notebooks/18_MNESIS_learn-periodic>`) | Stable periodic retrieval under progressive bit-flip noise |
 
 ## Citation

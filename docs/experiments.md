@@ -78,8 +78,10 @@ its own threshold, the all-or-nothing ignition of the replay.
   scans over `N_pattern` ($M$), `N_time` ($T$), `num_delay` ($D$), `N_neuron`
   ($N$), `p_A`, `lif_threshold` ($\vartheta$), `p_flip`, and the `do_deconv` /
   `do_pinv` flags, with $10$ independent runs (random seeds) per value; produces the
-  `scan_{key}` figures, of which `scan_num_delay`, `scan_N_time` and
-  `scan_N_neuron` appear in the paper.
+  `scan_{key}` figures, of which `scan_num_delay`, `scan_N_neuron`, `scan_N_time`
+  and `scan_N_pattern` form the figure of the paper (the $p_A$ scan is reported in
+  its text only). All the scans are complete: 940 runs, in the files
+  `{datetag}_scan_{key}.json`.
 - {doc}`NB 25: Optuna optimisation <notebooks/25_MNESIS_optuna>` — automated hyperparameter search with
   [Optuna](https://optuna.org/) (multivariate TPE, 200 trials of 128 epochs)
   over the initialisation flags, the optimiser, the LIF parameters ($\beta$,

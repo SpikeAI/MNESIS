@@ -109,6 +109,10 @@ a `.lock` out from under a running scan. A scan reserves a placeholder row
 (`loss=null`, `time=0.0`) before computing it; if the process dies, that row would
 count as computed forever. `purge_unfinished_scans()` (run at the start of
 notebook 99, skipping locked scans unless `remove_locks=True`) deletes those rows.
+Only purge when no job is running (`squeue`): the row reserved by a live job looks
+like an orphan, and purging it loses that job's result when it ends (or computes the
+run twice). The reserved rows, not the lock, keep several jobs from computing the same
+run, so that several jobs can share one scan once its lock is removed by hand.
 
 ### Test / compile the Python side
 
@@ -222,9 +226,8 @@ pip install -r docs/requirements.txt && make -C docs html   # green if Sphinx ex
 
 Each experiment notebook carries markdown documentation in a standard shape
 (see notebooks 11 and 14–16 for models to follow). Notebooks 10 and 13 follow the
-shape but lack the `<!-- MNESIS-annotated -->` marker; notebooks 18, 20, 25 and
-99 do not follow it yet (18 has a summary without the H1 title, 20 and 25 start
-with code).
+shape but lack the `<!-- MNESIS-annotated -->` marker; notebooks 18, 25 and 99 do
+not follow it yet (18 has a summary without the H1 title, 25 starts with code).
 
 - **H1 title** (`# ...`) as the first markdown cell, stating the experiment in
   one paragraph; end it with the `<!-- MNESIS-annotated -->` idempotency marker
