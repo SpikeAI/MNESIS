@@ -6,7 +6,7 @@
 %----------------------------------------------------------------------------------------
 %	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
-\documentclass[11pt,british]{article}
+\documentclass[10pt,british]{article}
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
@@ -14,9 +14,22 @@
 \usepackage{hyperref}
 \usepackage{babel}
 \usepackage{xcolor}
+\usepackage{graphicx}
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{.5\baselineskip plus 1pt minus 1pt}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{.4pt}% Default header rule
+\renewcommand{\footrulewidth}{0pt}% No footer rule
+\fancyhf{}% Clear header/footer
+\fancypagestyle{plain}{
+  \renewcommand{\headrulewidth}{0pt}% No header rule
+  \renewcommand{\footrulewidth}{.4pt}% Default footer rule
+  \fancyhf{}% Clear header/footer
+}
+\AtBeginDocument{\thispagestyle{plain}}
+
 
 % placeholders the author must complete before submission
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
@@ -29,7 +42,7 @@
 \newcommand{\Institute}{Institut de Neurosciences de la Timone (UMR 7289), CNRS / Aix-Marseille Universit\'e}%
 \newcommand{\Address}{27, Bd. Jean Moulin, 13005 Marseille, France}%
 \newcommand{\Website}{\url{https://laurentperrinet.github.io/}}%
-\newcommand{\Email}{\url{laurent.perrinet@cnrs.fr}}%
+\newcommand{\Email}{\url{laurent.perrinet@univ-amu.fr}}%
 \newcommand{\Repository}{\url{https://github.com/SpikeAI/MNESIS}}%
 \newcommand{\Preprint}{\url{https://arxiv.org/abs/2604.14096}}%
 
@@ -50,7 +63,7 @@
 %----------------------------------------------------------------------------------------
 %	ADDRESSEE AND GREETING/CLOSING
 %----------------------------------------------------------------------------------------
-Marseille, 2026-10-27
+Marseille, October 27th, 2026
 
 \vspace{\baselineskip}
 Dear Editor,
@@ -60,13 +73,15 @@ Dear Editor,
 %----------------------------------------------------------------------------------------
 Please find enclosed the manuscript entitled ``Working Memory with Polychronous Chains'' for your consideration as an original research article in \emph{Neural Networks}. I am the sole author of the work and have approved the manuscript for submission.
 
-Storing and recalling long spatio-temporal sequences of spikes remains an open problem for spiking neural networks, because each step of a sequence depends on the network's own output at the previous step, so that small errors compound. The manuscript proposes a recurrent network of $N=1024$ leaky integrate-and-fire neurons in which every synapse carries $D=41$ learnable, heterogeneous delays. A stored pattern is encoded as a chain of overlapping spiking motifs, that is contiguous windows of $D$ time steps, each of which uniquely predicts the next activity. A closed-form initialisation, derived by deconvolving the membrane response, already gives high $F_1$ scores before any gradient step. End-to-end training with surrogate gradients through time then raises the mean $F_1$ score to approximately $0.9$ on $M=16$ patterns of $T=1000\,\mathrm{ms}$. Retrieval remains accurate when the trigger window is corrupted, with high $F_1$ scores maintained up to about $20\%$ bit-flip noise, and the network shows attractor-like retrieval dynamics.
+Recalling long sequences of spikes is a central challenge for spiking neural networks, the brain-inspired models that best suit neuromorphic hardware. The difficulty is that delays stay short (41 ms), whereas the memories to be recalled last seconds to minutes. This manuscript shows that it becomes possible thanks to heterogeneous, learnable synaptic delays. A recurrent network of $N=1024$ neurons, in which every synapse carries $D=41$ learnable delays, replays stored sequences of $T=1000\,\mathrm{ms}$ from a short trigger. Training with surrogate gradients raises the mean $F_1$ score to about $0.9$ over $M=16$ patterns, and retrieval stays accurate with up to about $20\%$ bit-flip noise in the trigger.
 
 The study lies within the scope of the journal. It combines a biologically grounded spiking model, a learning procedure based on backpropagation through time, and an analysis of retrieval dynamics, and it addresses how working memory can be implemented in recurrent networks of spiking neurons. The results bear on both theoretical neuroscience and neuromorphic machine learning, where heterogeneous delays offer a route to temporal memory with a small parameter budget per synapse.
 
-The manuscript is an extended version of a paper presented at the International Conference on Artificial Neural Networks (ICANN 2026). \todo{Describe here the new material added to the journal version, with its approximate share of the text and results, as required by the journal.} The manuscript has not been published in a journal and is not under consideration by any other journal. A preprint is available on arXiv (\Preprint).
+The manuscript is an extended version of a conference paper presented at the International Conference on Artificial Neural Networks (ICANN 2026). Compared to the conference paper it adds additional cross-validation results but most importantly a simple theory to explain why this framework is effective to implement working memory in spiking neural networks. The manuscript has not been published in a journal and is not under consideration by any other journal. A preprint is available on arXiv (\Preprint).
 
 The work involves no human or animal data, so no ethics approval was required. I declare no conflicts of interest, and the funders had no role in the study. The use of generative AI tools is disclosed in the manuscript. The Python code, the experiment notebooks and the \LaTeX{} source are openly available at \Repository{} under the GPL-3.0 licence, and the figures are generated by the notebooks in that repository.
+
+I am affiliated with Aix-Marseille Universit\'e, through the Institut de Neurosciences de la Timone, and I intend to publish this article open access under the agreement between Aix-Marseille Universit\'e and Elsevier negotiated through the Couperin consortium.
 
 I thank you for your time and consideration, and I look forward to your reply. Please do not hesitate to contact me if any further information is needed.
 
@@ -75,6 +90,8 @@ I thank you for your time and consideration, and I look forward to your reply. P
 \vspace{\baselineskip}
 Sincerely yours,
 
-\FirstName\ \LastName
+\FirstName\ \LastName , Directeur de Recherche CNRS Institut de Neurosciences de la Timone\\
+
+\includegraphics[height=2cm]{~/app54_nextcloud/Documents/doc-id-laurent/signature_LuP.jpg}
 
 \end{document}
