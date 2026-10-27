@@ -208,6 +208,7 @@ These failures are predicted, with no fitted parameter, by the cascade model of 
 
 %%%-----------------------------------------------------------------
 \subsection{Effect of hyperparameters}
+\label{sec:hyperparameters}
 %%%-----------------------------------------------------------------
 % 25_MNESIS_optuna.ipynb
 The learning hyperparameters were explored jointly with a Bayesian optimisation (Optuna~\citep{Akiba2019}, multivariate tree-structured Parzen estimator) over $200$ trials of $128$ epochs each, that is, half of the production budget. Of these, $197$ trials were completed; three were still marked as running in the study database. Each trial sampled the optimiser, the LIF parameters ($\beta$, $\vartheta$, reset mechanism), the surrogate sharpness $\alpha$, the learning-rate schedule and the dropout rate, and was scored by the loss $\mathcal{L} = 1 - F_1$ on fresh realisations of the motifs. Parameter importances were estimated with functional ANOVA (fANOVA). Three parameters dominated, together accounting for $0.88$ of the total importance: the firing threshold $\vartheta$ ($0.52$), the optimiser ($0.20$) and the pseudo-inverse initialisation ($0.15$). Their effect on the loss is reported first, then that of the remaining parameters in decreasing order of importance.
