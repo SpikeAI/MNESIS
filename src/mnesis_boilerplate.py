@@ -578,23 +578,152 @@ def get_f1_ignition(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0
     R = np.sum(P_j * Phi_j, axis=-1) / np.sum(P_j * p_K.sum(axis=-1))
     return get_f1_from_ignition(R, precision_0, recall_0)
 
+def get_replay_hazard(p_drop, p_A, N_neuron, num_delay, lif_threshold):
+    """Failure rate of a sustained replay under spike transmission failures.
+
+    During a sustained replay, the context of each spike of a motif is made of
+    the network's own output only. If every emitted spike fails to reach the
+    recurrent input with probability ``p_drop``, independently, each spike of
+    the motif is a new ignition test: the first evoked spike of
+    :func:`get_f1_ignition`, with a context spanning the whole window (``K``
+    Poisson of mean ``p_A N_neuron num_delay``) and a presence probability
+    ``q = 1 - p_drop``. A step holds a spike of the motif with probability
+    ``1 - exp(-p_A N_neuron)``, and the first failed spike is taken to end the
+    replay (the positive feedback loop then shrinks the next contexts), so that
+    the replay survives ``t`` steps with probability ``exp(-h t)``. The contexts
+    with ``K = 0`` (a gap of ``num_delay`` silent steps) are left out, as their
+    failures are already counted in the recall of the intact replay.
+
+    Args:
+        p_drop (float or np.ndarray): probability that an emitted spike is not
+            transmitted to the recurrent input (dimensionless).
+        p_A (float): firing probability of the motif (spike per time step).
+        N_neuron (int): number of neurons.
+        num_delay (int): width of the spiking-motif window (time steps).
+        lif_threshold (float): firing threshold, relative to the membrane
+            potential reached on the motif (dimensionless).
+
+    Returns:
+        np.ndarray: failure rate ``h`` (per time step), shaped like ``p_drop``.
+    """
+    mu = p_A * N_neuron
+    lam = mu * num_delay
+    K = np.arange(1, int(lam + 10 * np.sqrt(lam)) + 10)
+    p_K = stats.poisson.pmf(K, lam)
+    # rounding first, so that e.g. 0.75 * 4 = 3 is not pushed to 4 by a float error
+    k_min = np.ceil(np.round(lif_threshold * K, 9))
+    q = 1 - np.asarray(p_drop, dtype=float)[..., None]
+    fail = stats.binom.cdf(k_min - 1, K, q)
+    return (1 - np.exp(- mu)) * np.sum(p_K * fail, axis=-1) / p_K.sum()
+
+def simulate_cascade(counts, present_trigger, num_delay, lif_threshold):
+    """Replay of motifs by the mean-field threshold readout, bin after bin (the cascade).
+
+    In the mean-field picture of the pseudo-inverse readout (see
+    :func:`get_f1_ignition`), all the spikes of a motif in bin ``t`` share the
+    same support, the ``K`` spikes of the motif in the ``num_delay`` bins
+    before ``t``, with equal weights: they are emitted together if at least
+    ``ceil(lif_threshold K)`` of these ``K`` spikes are present, and never if
+    ``K = 0`` (a gap of ``num_delay`` silent bins, which the replay cannot
+    cross). The emitted spikes join the support of the next ones (the positive
+    feedback loop); spurious spikes, which fall on near-zero weights, are left
+    out, so that only the number of spikes per bin matters.
+
+    Args:
+        counts (np.ndarray): spikes of each motif per bin, ``(N_motif, N_time)``.
+        present_trigger (np.ndarray): spikes of each motif present in the
+            trigger, per bin of the window, ``(N_motif, num_delay)``.
+        num_delay (int): width of the spiking-motif window (time bins).
+        lif_threshold (float): firing threshold, relative to the membrane
+            potential reached on the motif (dimensionless).
+
+    Returns:
+        np.ndarray: emitted spikes per bin, ``(N_motif, N_time)``; the first
+        ``num_delay`` bins hold the trigger.
+    """
+    N_motif, N_time = counts.shape
+    emitted = np.zeros_like(counts)
+    emitted[:, :num_delay] = present_trigger
+    # K of the spikes in bin t (column t - num_delay): the spikes of the motif in [t - num_delay, t)
+    csum = np.concatenate([np.zeros((N_motif, 1), dtype=counts.dtype), np.cumsum(counts, axis=1)], axis=1)
+    K = csum[:, num_delay:N_time] - csum[:, :N_time-num_delay]
+    # rounding first, so that e.g. 0.75 * 4 = 3 is not pushed to 4 by a float error
+    k_min = np.ceil(np.round(lif_threshold * K, 9))
+    k = emitted[:, :num_delay].sum(axis=1) # present support, kept as a running sum over the window
+    for t in range(num_delay, N_time):
+        i = t - num_delay
+        emitted[:, t] = counts[:, t] * ((K[:, i] > 0) & (k >= k_min[:, i]))
+        k += emitted[:, t] - emitted[:, i]
+    return emitted
+
+def get_cascade_motifs(N_motif, N_neuron, N_time, p_A, num_delay, seed=2026):
+    """Random motifs for the cascade model, with the identity of the trigger spikes.
+
+    Draws ``Binomial(N_neuron, p_A)`` spikes per bin, as the frozen motifs of
+    the network (:class:`mnesis_chains.StochasticSpikingPattern`), and, for each
+    spike of the trigger window, the neuron that fires it and a uniform number
+    that decides whether a bit flip removes it: the identity of the neurons
+    matters for a lesioned trigger, which always silences the same neurons.
+
+    Args:
+        N_motif (int): number of motifs.
+        N_neuron (int): number of neurons.
+        N_time (int): duration of a motif (time bins).
+        p_A (float): firing probability of the motif (spike per time bin).
+        num_delay (int): width of the spiking-motif window (time bins).
+        seed (int): seed of the random generator.
+
+    Returns:
+        dict: ``counts`` ``(N_motif, N_time)``, and per trigger spike slot
+        ``(N_motif, num_delay, n_max)``: ``in_bin`` (the slot holds a spike),
+        ``neuron`` and ``u``; input of :func:`get_cascade_presence`.
+    """
+    rng = np.random.default_rng(seed)
+    counts = rng.binomial(N_neuron, p_A, size=(N_motif, N_time))
+    n_max = max(counts[:, :num_delay].max(), 1)
+    in_bin = np.arange(n_max) < counts[:, :num_delay, None]
+    neuron = rng.integers(0, N_neuron, size=in_bin.shape)
+    u = rng.random(in_bin.shape)
+    return dict(counts=counts, in_bin=in_bin, neuron=neuron, u=u)
+
+def get_cascade_presence(motifs, p_flip, p_A, n_lesion=0, N_trigger_time=None):
+    """Spikes of each motif present in a degraded trigger, per bin of the window.
+
+    A spike of the trigger window is present if it falls in the last
+    ``N_trigger_time`` bins (a truncated trigger), is not fired by one of the
+    first ``n_lesion`` neurons (a lesioned trigger, as in notebook 16) and
+    survives the balanced flips, which keep it with probability
+    ``1 - p_flip (1 - p_A)`` (:func:`get_trigger_presence` gives the same
+    probabilities, averaged over the neurons).
+
+    Args:
+        motifs (dict): motifs drawn by :func:`get_cascade_motifs`.
+        p_flip (float): bit-flip probability of the trigger (dimensionless).
+        p_A (float): firing probability of the motif (spike per time bin).
+        n_lesion (int): number of silenced neurons.
+        N_trigger_time (int): number of bins shown at the end of the window
+            (time bins); ``None`` shows the whole window.
+
+    Returns:
+        np.ndarray: present spikes per bin, ``(N_motif, num_delay)``.
+    """
+    num_delay = motifs['in_bin'].shape[1]
+    if N_trigger_time is None: N_trigger_time = num_delay
+    keep = motifs['in_bin'] & (motifs['u'] >= p_flip * (1 - p_A)) & (motifs['neuron'] >= n_lesion)
+    return keep.sum(axis=-1) * (np.arange(num_delay) >= num_delay - N_trigger_time)
+
 def get_f1_cascade(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0=1., recall_0=1.,
-                   fraction=1., N_trigger_time=None, N_motif=2000, seed=2026):
-    """F1 score expected from a simulated cascade of the replay (Monte Carlo).
+                   fraction=1., N_trigger_time=None, N_time=1000, N_motif=1000 // DEBUG, seed=2026):
+    """F1 score expected from the simulated cascade of the replay, on random motifs (Monte Carlo).
 
     Simulates the threshold network that :func:`get_f1_ignition` reduces to
-    its first step: ``N_motif`` motifs are drawn with ``Binomial(N_neuron,
-    p_A)`` spikes per bin; in the trigger window each spike is kept with the
-    probability of :func:`get_trigger_presence`; then, bin after bin, the
-    spikes of the motif are emitted if at least ``ceil(lif_threshold K)`` of
-    the ``K`` spikes of the motif in the ``num_delay`` bins before them are
-    present, the emitted spikes joining the support of the next ones (the
-    positive feedback loop). The identity of the neurons does not matter in
-    this mean-field picture, only the number of spikes per bin. After a
-    transient of ``2 num_delay`` bins, the fraction of the spikes of the motifs
-    re-emitted in the next ``num_delay`` bins is the ignition probability
-    ``R``, normalised by its value for an intact trigger on the same motifs,
-    and the F1 score follows from :func:`get_f1_from_ignition`. All the
+    its first step (:func:`simulate_cascade`) on ``N_motif`` random motifs of
+    the whole duration ``N_time`` (:func:`get_cascade_motifs`), so that it also
+    checks that the first evoked spike decides the replay. The pooled recall
+    of the motifs, normalised by its value for an intact trigger on the same
+    motifs (which removes the failures at a gap of ``num_delay`` silent bins,
+    already counted in ``recall_0``), is the ignition probability ``R``, and
+    the F1 score follows from :func:`get_f1_from_ignition`. All the
     degradation levels share the same motifs and draws (common random
     numbers), so that the curve is smooth.
 
@@ -608,9 +737,11 @@ def get_f1_cascade(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0=
         precision_0 (float): precision of the replay with the intact trigger.
         recall_0 (float): recall of the replay with the intact trigger.
         fraction (float or np.ndarray): fraction of the neurons shown by the
-            trigger (dimensionless, 1 for an intact trigger).
+            trigger (dimensionless, 1 for an intact trigger); the
+            ``(1 - fraction) N_neuron`` first neurons are silenced.
         N_trigger_time (float or np.ndarray): number of bins shown at the end
             of the window (time bins); ``None`` shows the whole window.
+        N_time (int): duration of a motif (time bins).
         N_motif (int): number of simulated motifs.
         seed (int): seed of the random generator.
 
@@ -618,26 +749,61 @@ def get_f1_cascade(p_flip, p_A, N_neuron, num_delay, lif_threshold, precision_0=
         np.ndarray: expected F1 score, shaped like the broadcast of ``p_flip``,
         ``fraction`` and ``N_trigger_time``.
     """
-    presence = get_trigger_presence(p_flip, p_A, num_delay, fraction, N_trigger_time)
-    shape = presence.shape[:-1]
-    # the last level is the intact trigger, used for the normalisation
-    presence = np.concatenate([presence.reshape(-1, num_delay), np.ones((1, num_delay))])
-    N_time = 4 * num_delay
-    rng = np.random.default_rng(seed)
-    counts = rng.binomial(N_neuron, p_A, size=(N_motif, N_time))
-    # one uniform per spike of the trigger window, shared by all the levels
-    u = rng.random((N_motif, num_delay, max(counts[:, :num_delay].max(), 1)))
-    in_bin = np.arange(u.shape[-1]) < counts[:, :num_delay, None]
-    present = np.zeros((presence.shape[0], N_motif, N_time), dtype=np.int16) # spike counts per bin, a few at most
-    present[:, :, :num_delay] = np.sum(in_bin & (u < presence[:, None, :, None]), axis=-1)
-    for t in range(num_delay, N_time):
-        K = counts[:, t-num_delay:t].sum(axis=-1)
-        k = present[:, :, t-num_delay:t].sum(axis=-1)
-        fire = (K > 0) & (k >= np.ceil(np.round(lif_threshold * K, 9)))
-        present[:, :, t] = counts[:, t] * fire
-    ignited = present[:, :, -num_delay:].sum(axis=(1, 2)) / counts[:, -num_delay:].sum()
-    R = (ignited[:-1] / ignited[-1]).reshape(shape)
-    return get_f1_from_ignition(R, precision_0, recall_0)
+    motifs = get_cascade_motifs(N_motif, N_neuron, N_time, p_A, num_delay, seed=seed)
+    if N_trigger_time is None: N_trigger_time = num_delay
+    p_flip, fraction, N_trigger_time = np.broadcast_arrays(np.asarray(p_flip, dtype=float),
+                                                           np.asarray(fraction, dtype=float), np.asarray(N_trigger_time))
+    def pooled_recall(p_flip=0., n_lesion=0, N_trigger_time=None):
+        present = get_cascade_presence(motifs, p_flip, p_A, n_lesion, N_trigger_time)
+        emitted = simulate_cascade(motifs['counts'], present, num_delay, lif_threshold)
+        return emitted[:, num_delay:].sum() / motifs['counts'][:, num_delay:].sum()
+    recall_intact = pooled_recall()
+    R = np.array([pooled_recall(p, int(np.rint((1 - f) * N_neuron)), L)
+                  for p, f, L in zip(p_flip.ravel(), fraction.ravel(), N_trigger_time.ravel())]) / recall_intact
+    return get_f1_from_ignition(R.reshape(p_flip.shape), precision_0, recall_0)
+
+def get_cascade_prediction(frozen_target, num_delay, lif_threshold, cue=None, n_lesion=0, N_trigger_time=None):
+    """Replay of each frozen motif of the network predicted by the cascade model.
+
+    Applies :func:`simulate_cascade` to the actual motifs, with no fitted
+    parameter: a spike of the trigger window is present if it is shown (the
+    last ``N_trigger_time`` bins, not one of the first ``n_lesion`` neurons)
+    and, when a noisy realisation ``cue`` provides the trigger, if this
+    realisation kept it. The model predicts the recall of each motif, not its
+    precision, as it leaves out the crosstalk between motifs.
+
+    Args:
+        frozen_target (torch.Tensor or np.ndarray): frozen motifs, ``(N_pattern, N_neuron, N_time)``.
+        num_delay (int): width of the spiking-motif window (time bins).
+        lif_threshold (float): firing threshold, relative to the membrane
+            potential reached on the motif (dimensionless).
+        cue (torch.Tensor or np.ndarray): noisy realisation providing the
+            trigger, of the same shape; ``None`` for the frozen motif itself.
+        n_lesion (int): number of silenced neurons (the first ones).
+        N_trigger_time (int): number of bins shown at the end of the window
+            (time bins); ``None`` shows the whole window.
+
+    Returns:
+        dict: per motif, ``recall`` (predicted recall of the evoked window),
+        ``t_stop`` (first spike of the motif that is not replayed, in time bins
+        from the onset of the motif, ``nan`` if the replay reaches the end) and
+        ``t_gap`` (onset of the first gap of ``num_delay`` silent bins in the
+        evoked window, ``nan`` if there is none).
+    """
+    target = torch.as_tensor(frozen_target).cpu().numpy() > 0
+    counts = target.sum(axis=1).astype(int)
+    shown = target[:, n_lesion:, :num_delay]
+    if cue is not None: shown = shown & (torch.as_tensor(cue).cpu().numpy()[:, n_lesion:, :num_delay] > 0)
+    if N_trigger_time is None: N_trigger_time = num_delay
+    present = shown.sum(axis=1) * (np.arange(num_delay) >= num_delay - N_trigger_time)
+    emitted = simulate_cascade(counts, present, num_delay, lif_threshold)
+    recall = emitted[:, num_delay:].sum(axis=1) / np.maximum(counts[:, num_delay:].sum(axis=1), 1)
+    missed = counts > emitted
+    missed[:, :num_delay] = False
+    t_stop = np.where(missed.any(axis=1), np.argmax(missed, axis=1), np.nan)
+    silent = np.lib.stride_tricks.sliding_window_view(counts[:, num_delay:] == 0, num_delay, axis=1).all(axis=-1)
+    t_gap = np.where(silent.any(axis=1), num_delay + np.argmax(silent, axis=1), np.nan)
+    return dict(recall=recall, t_stop=t_stop, t_gap=t_gap)
 
 def get_recall_time(spikes, target, bin_width):
     """Recall of each motif in successive time bins of the evoked window.
