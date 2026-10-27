@@ -19,8 +19,8 @@ permissions:
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run
-# in-progress and latest queued. However, do NOT cancel in-progress runs as we
-# want to allow these production deployments to complete.
+# in-progress and latest queued. However, do NOT cancel in-progress runs, which
+# must be allowed to complete production deployments.
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -54,7 +54,7 @@ jobs:
         with:
           path: 'docs/_build/html'
 
-  # Single deploy job since we're just deploying
+  # Single deploy job, as the workflow only deploys
   deploy:
     environment:
       name: github-pages

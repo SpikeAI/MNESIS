@@ -177,8 +177,9 @@ are built in `tex/`. Build everything from inside
 
 - Use the `\ShortTitle` macro (`metadata.tex`) for the running head and the title of the
   memory-capacity subsection, not the long title.
-- Avoid first-person voice (`I`, `we`): write in the passive or with the model as subject.
-  The AI-use statement uses the plural `the authors`.
+- Avoid first-person voice (`I`, `we`) where the passive or the model as subject reads
+  naturally. Keep `we` when the passive is heavy, for example "We used the simplest LIF
+  model with a fixed membrane decay $\beta$." The AI-use statement uses the plural `the authors`.
 - The paper's main claim is robust storage of many context windows, made possible by the
   heterogeneous delays and shown by the parameter scan. Compression is not the argument.
 - Check an interpretation against per-motif data before it enters the text (for example,

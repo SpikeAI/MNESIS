@@ -406,9 +406,9 @@ class HD_SNN(nn.Module):
         for i_step in range(self.opt.num_epochs):
             self.net.train()
             seed_train, seed_val = seeds[i_step].tolist()
-            # the pattern that we wish to memorize
-            target = self.pattern_object(seed=seed_train) # NOTE: we assume that the pattern generator can generate a new pattern each time it is called
-            # the input spikes that we feed to the network, which includes pre-time spontaneous activity (padding) and the target pattern just for the trigger window
+            # the pattern to be memorised
+            target = self.pattern_object(seed=seed_train) # NOTE: the pattern generator is assumed to produce a new pattern each time it is called
+            # the input spikes fed to the network, which include pre-time spontaneous activity (padding) and the target pattern just for the trigger window
             input_spikes = self.get_input_spikes(target=target, seed=seed_train).detach()
             optimizer.zero_grad()
             # the optimal output spikes that the network produces in response to the input spikes
