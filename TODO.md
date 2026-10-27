@@ -1,6 +1,6 @@
 # MNESIS TODO
 
-- [ ] finir passe TEX : unifier le texte, les notations, les figures, et les légendes, le langage en-GB
+- [ ] finir passe TEX : unifier le texte, les notations, les figures, et les légendes, le langage en-GB, vérifier que chaque argument amène le suivant (par exemple les définitions)
 
 - [ ] dire que c'est super pour faire le module pred de JEPA
 
