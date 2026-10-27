@@ -1,4 +1,4 @@
-# MNESIS — Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays
+# MNESIS — Working Memory with Polychronous Chains
 
 ```{eval-rst}
 .. image:: https://img.shields.io/badge/Python-3.10%2B-blue.svg
@@ -30,8 +30,8 @@ The same `HD_SNN` framework is applied to sparse synthetic motifs and to periodi
 motifs. The experiments build on one another: each numbered notebook imports the
 shared infrastructure and loads the cached artifacts produced by the previous one.
 
-**Paper:** Laurent U. Perrinet (2026). *Working Memory in Recurrent Spiking Neural
-Networks With Heterogeneous Synaptic Delays*. ICANN 2026.
+**Paper:** Laurent U. Perrinet (2026). *Working Memory with Polychronous Chains*.
+ICANN 2026.
 [`https://laurentperrinet.github.io/publication/perrinet-26/`](https://laurentperrinet.github.io/publication/perrinet-26/)
 
 ## Model
@@ -151,8 +151,7 @@ scores quoted.
 ```bibtex
 @inproceedings{Perrinet2026MNESIS,
   author        = {Perrinet, Laurent U.},
-  title         = {Working Memory in Recurrent Spiking Neural Networks
-                  With Heterogeneous Synaptic Delays},
+  title         = {Working Memory with Polychronous Chains},
   booktitle     = {ICANN 2026},
   year          = {2026},
   eprint        = {2604.14096},

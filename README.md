@@ -1,4 +1,4 @@
-# MNESIS — Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays
+# MNESIS — Working Memory with Polychronous Chains
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Licence: GPL-3.0](https://img.shields.io/badge/Licence-GPL--3.0-green.svg)](LICENSE)
@@ -11,7 +11,7 @@ MNESIS is a recurrent spiking neural network (SNN) with heterogeneous synaptic d
 
 This repository holds the implementation, the experiment notebooks and the LaTeX source of the paper.
 
-**Paper:** Laurent U. Perrinet (2026). *Working Memory in Recurrent Spiking Neural Networks With Heterogeneous Synaptic Delays*. ICANN 2026 · [publication page](https://laurentperrinet.github.io/publication/perrinet-26/) · arXiv [`2604.14096`](https://arxiv.org/abs/2604.14096).
+**Paper:** Laurent U. Perrinet (2026). *Working Memory with Polychronous Chains*. ICANN 2026 · [publication page](https://laurentperrinet.github.io/publication/perrinet-26/) · arXiv [`2604.14096`](https://arxiv.org/abs/2604.14096).
 
 ---
 
@@ -77,8 +77,7 @@ See [Installation & Quickstart](https://spikeai.github.io/MNESIS/installation.ht
 ```bibtex
 @inproceedings{Perrinet2026MNESIS,
   author       = {Perrinet, Laurent U.},
-  title        = {Working Memory in Recurrent Spiking Neural Networks
-                With Heterogeneous Synaptic Delays},
+  title        = {Working Memory with Polychronous Chains},
   booktitle    = {ICANN 2026},
   year         = {2026},
   eprint       = {2604.14096},

@@ -4,8 +4,7 @@ message: >-
   (preferred-citation below) and, where relevant, this repository.
 type: software
 title: >-
-  MNESIS: Working Memory in Recurrent Spiking Neural Networks With
-  Heterogeneous Synaptic Delays
+  MNESIS: Working Memory with Polychronous Chains
 abstract: >-
   MNESIS is a recurrent spiking neural network (SNN) in which every synapse
   carries D learnable delays, parameterised as a single weight tensor of
@@ -38,8 +37,7 @@ keywords:
 preferred-citation:
   type: conference-paper
   title: >-
-    Working Memory in Recurrent Spiking Neural Networks With Heterogeneous
-    Synaptic Delays
+    Working Memory with Polychronous Chains
   authors:
     - family-names: Perrinet
       given-names: Laurent U.
