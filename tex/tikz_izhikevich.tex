@@ -37,7 +37,6 @@
 \def\printscale{0.6531}
 \newcommand\papernormalsize{\fontsize{\fpeval{10.95/\printscale}}{\fpeval{13.6/\printscale}}\selectfont}
 \newcommand\papersmall{\fontsize{\fpeval{10/\printscale}}{\fpeval{12/\printscale}}\selectfont}
-\newcommand\paperscriptsize{\fontsize{\fpeval{8/\printscale}}{\fpeval{9.5/\printscale}}\selectfont}
 
 %==================== Motif definition ==========================
 % --- Population ---------------------------------------------------------
@@ -106,7 +105,7 @@
     % Delay labels sit above their arrow, in the colour of their motif, at the
     % smallest paper size: larger ones mask the crossing bundles.
     nodeLabel/.style={sloped, above, fill=white, inner sep=1pt,
-        font=\paperscriptsize},
+        font=\papersmall},
     brownlabel/.style={nodeLabel, text=black!60!red!75!brown},
     greenlabel/.style={nodeLabel, text=green!40!black},
     panelTitle/.style={font=\papernormalsize\itshape},

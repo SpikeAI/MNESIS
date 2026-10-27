@@ -180,6 +180,9 @@ are built in `tex/`. Build everything from inside
 - Avoid first-person voice (`I`, `we`) where the passive or the model as subject reads
   naturally. Keep `we` when the passive is heavy, for example "We used the simplest LIF
   model with a fixed membrane decay $\beta$." The AI-use statement uses the plural `the authors`.
+- Each sentence rewritten from `we` must read naturally in its paragraph: prefer
+  "The trigger window was corrupted with ..." to "We corrupted the trigger window with ...",
+  and check the result in context rather than applying the rule word for word.
 - The paper's main claim is robust storage of many context windows, made possible by the
   heterogeneous delays and shown by the parameter scan. Compression is not the argument.
 - Check an interpretation against per-motif data before it enters the text (for example,

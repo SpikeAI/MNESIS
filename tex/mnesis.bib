@@ -200,18 +200,19 @@
   archiveprefix = {arXiv}
 }
 
-@misc{Goltz2024,
-  title         = {{{DelGrad}}: {{Exact}} Gradients in Spiking Networks for Learning Transmission Delays and Weights},
+@article{Goltz2024,
+  title         = {{{DelGrad}}: Exact Event-Based Gradients for Training Delays and Weights on Spiking Neuromorphic Hardware},
   shorttitle    = {{{DelGrad}}},
-  author        = {G{\"o}ltz, Julian and Weber, Jimmy and Kriener, Laura and Lake, Peter and Payvand, Melika and Petrovici, Mihai A.},
-  year          = 2024,
-  month         = apr,
-  number        = {arXiv:2404.19165},
+  author        = {G{\"o}ltz, Julian and Weber, Jimmy and Kriener, Laura and Billaudelle, Sebastian and Lake, Peter and Schemmel, Johannes and Payvand, Melika and Petrovici, Mihai A.},
+  year          = 2025,
+  month         = sep,
+  journal       = {Nature Communications},
+  volume        = 16,
+  number        = 1,
+  pages         = 8245,
+  doi           = {10.1038/s41467-025-63120-y},
   eprint        = {2404.19165},
-  primaryclass  = {cs},
-  url           = {http://arxiv.org/abs/2404.19165},
   urldate       = {2024-05-01},
-  abstract      = {Spiking neural networks (SNNs) inherently rely on the timing of signals for representing and processing information. Transmission delays play an important role in shaping these temporal characteristics. Recent work has demonstrated the substantial advantages of learning these delays along with synaptic weights, both in terms of accuracy and memory efficiency. However, these approaches suffer from drawbacks in terms of precision and efficiency, as they operate in discrete time and with approximate gradients, while also requiring membrane potential recordings for calculating parameter updates. To alleviate these issues, we propose an analytical approach for calculating exact loss gradients with respect to both synaptic weights and delays in an event-based fashion. The inclusion of delays emerges naturally within our proposed formalism, enriching the model's search space with a temporal dimension. Our algorithm is purely based on the timing of individual spikes and does not require access to other variables such as membrane potentials. We explicitly compare the impact on accuracy and parameter efficiency of different types of delays - axonal, dendritic and synaptic. Furthermore, while previous work on learnable delays in SNNs has been mostly confined to software simulations, we demonstrate the functionality and benefits of our approach on the BrainScaleS-2 neuromorphic platform.},
   archiveprefix = {arXiv}
 }
 
@@ -362,20 +363,20 @@
   url     = {https://direct.mit.edu/neco/article/21/5/1259/7412/}
 }
 
-@misc{Meszaros2025,
+@article{Meszaros2025,
   title         = {Efficient {{Event-based Delay Learning}} in {{Spiking Neural Networks}}},
   author        = {M{\'e}sz{\'a}ros, Bal{\'a}zs and Knight, James C. and Nowotny, Thomas},
   year          = 2025,
-  month         = jun,
-  number        = {arXiv:2501.07331},
+  month         = nov,
+  journal       = {Nature Communications},
+  volume        = 16,
+  number        = 1,
+  pages         = {1--14},
+  doi           = {10.1038/s41467-025-65394-8},
   eprint        = {2501.07331},
-  primaryclass  = {cs},
-  publisher     = {arXiv},
-  doi           = {10.48550/arXiv.2501.07331},
-  url           = {http://arxiv.org/abs/2501.07331},
+  archiveprefix = {arXiv},
   urldate       = {2026-04-21},
   abstract      = {Spiking Neural Networks (SNNs) compute using sparse communication and are attracting increased attention as a more energy-efficient alternative to traditional Artificial Neural Networks\textasciitilde (ANNs). While standard ANNs are stateless, spiking neurons are stateful and hence intrinsically recurrent, making them well-suited for spatio-temporal tasks. However, the duration of this intrinsic memory is limited by synaptic and membrane time constants. Delays are a powerful additional mechanism and, in this paper, we propose a novel event-based training method for SNNs with delays, grounded in the EventProp formalism which enables the calculation of exact gradients with respect to weights and delays. Our method supports multiple spikes per neuron and, to the best of our knowledge, is the first delay learning algorithm to be applied to recurrent SNNs. We evaluate our method on a simple sequence detection task, as well as the Yin-Yang, Spiking Heidelberg Digits, Spiking Speech Commands and Braille letter reading datasets, demonstrating that our algorithm can optimise delays from suboptimal initial conditions and enhance classification accuracy compared to architectures without delays. We also find that recurrent delays are particularly beneficial in small networks. Finally, we show that our approach uses less than half the memory of the current state-of-the-art delay-learning method and is up to 26x faster.},
-  archiveprefix = {arXiv}
 }
 
 @article{Nawrot2003,
@@ -489,7 +490,6 @@
    month = apr,
   isbn = {2-930307-02-1}
 }
-
 
 @inproceedings{Perrinet2023,
   title     = {Accurate {{Detection}} of {{Spiking Motifs}} in {{Multi-unit Raster Plots}}},
@@ -652,7 +652,8 @@
 @article{Dawid2023,
   author = {Dawid, Anna and LeCun, Yann},
   title = {Introduction to Latent Variable Energy-Based Models: A Path Towards Autonomous Machine Intelligence},
-  journal = {arXiv preprint},
+  % TODO: confirm the volume, pages, DOI and year of the Journal of Statistical Mechanics version
+  journal = {J. Stat. Mech.},
   year = {2023},
   eprint = {2306.02572},
   archivePrefix = {arXiv},
