@@ -37,10 +37,10 @@ Submitted preprint.
 ### Interactive raster
 
 An interactive spike raster (space: pause, click a spike while paused to highlight the
-spikes of the preceding context window, `s`: shade that window). It opens
-[in its own page](izhikevich.html) as well.
+spikes of the preceding context window, `s`: shade that window).
 
 ```{raw} html
+<p><a href="izhikevich.html" target="_blank" rel="noopener">Open it in its own page</a>.</p>
 <iframe src="izhikevich.html" title="Interactive spike raster"
         style="width:100%; height:32em; border:1px solid #888; border-radius:6px;"
         loading="lazy" allowfullscreen></iframe>
