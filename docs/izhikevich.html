@@ -1,33 +1,158 @@
 <!doctype html>
 <html lang="fr">
 <head>
+<!--
+  CAHIER DES CHARGES : izhikevich.html
+
+  1. But
+     Reprendre de façon dynamique la figure tex/figure_izhikevich.tex (« Working memory as a chained
+     sequential spike prediction via heterogeneous delays ») : un raster plot animé où l'on rejoue à la main
+     le mécanisme de la figure. Une fenêtre de contexte de 41 ms prédit le spike suivant, qui entre dans la
+     fenêtre suivante, et ainsi de suite (mémoire de travail comme chaîne de groupes polychrones).
+     Page autonome (HTML, CSS et JavaScript dans un seul fichier, aucune dépendance), à ouvrir dans un navigateur.
+
+  2. Signal
+     - 1000 neurones, signal de T_TOTAL = 3 s, rejoué en boucle sans coupure au raccord.
+     - Un seul tirage de Poisson à 0,16 Hz par neurone, fait à l'initialisation avec un générateur à graine
+       fixe (mulberry32), puis gelé : les trains de spikes sont rejoués à l'identique à chaque période.
+       Il n'y a pas de motif inséré. Le tirage aléatoire ne contient donc pas de vrais groupes polychrones.
+
+  3. Affichage
+     - Raster plein écran sur un canvas : une ligne horizontale très fine par neurone, un bref trait
+       vertical par spike.
+     - Fenêtre de temps réglable (1 s au départ, de 50 ms à 3 s) qui défile en temps réel. La barre de
+       l'instant présent est bleutée, placée à 80 % de la largeur, et dessinée derrière les spikes comme la
+       zone ombrée. Le passé s'estompe, le futur est pâle.
+     - Zoom sur les neurones : de 1000 à 128 neurones affichés (128 lignes à 128), avec un curseur
+       « first neuron » pour se déplacer quand on zoome.
+     - Visibilité : spikes larges et clairs ; le spike qui atteint le présent « flashe » pendant 150 ms
+       (blanc, halo bleu, élargi).
+     - Zone ombrée (touche s) : les 41 ms qui précèdent le présent.
+
+  4. Mode chaîne (touche c) : simulation du mécanisme de la figure
+     - L'activer sélectionne le spike le plus récent avant le présent : il est la référence (couleur forte).
+       Les spikes des 41 ms qui le précèdent forment son contexte, de la même teinte, et la zone ombrée se
+       cale sur lui. Le spike suivant dans le temps (rebouclage à 3 s) est la prédiction, en bleu.
+     - Une teinte par étape (angle d'or de 137,5°). Un spike qui sort de la fenêtre garde la teinte de la
+       dernière étape où il était dans le contexte. Désactiver la chaîne remet toutes les couleurs à zéro.
+     - Mode dynamique (lecture, éventuellement ralentie) : la fenêtre saute de spike en spike quand le
+       présent atteint le suivant.
+     - Pas à pas (n, retour avec b), en pause : cycle de 3 pressions sur un spike : 1. contexte coloré ;
+       2. prédiction en bleu ; 3. décalage de la fenêtre sur le spike prédit, qui devient la nouvelle
+       référence. Sans la chaîne, n et b sautent au spike suivant ou précédent.
+     - Délais (touche d) : une ligne relie chaque spike du contexte au spike prédit, avec le délai en ms
+       (comme les trajectoires du panneau droit de la figure) ; les prédictions précédentes restent estompées.
+
+  5. Commandes (chacune a un bouton, la touche est affichée sur le bouton ; ? ou h ouvre l'aide)
+     espace pause/lecture · s zone de 41 ms · c chaîne · n / b pas en avant / en arrière · d délais ·
+     k / l plus lent / plus rapide (curseur « speed », ×0,02 à ×1) · r réinitialiser la vue ·
+     f plein écran · z mode zen (interface minimale : il ne reste que les curseurs de zoom, discrets) ·
+     ? ou h aide à l'écran.
+     Les touches lisent le caractère tapé (e.key) et non la touche physique, pour fonctionner sur un clavier
+     AZERTY. Esc n'est pas utilisé : il sert à sortir du plein écran.
+
+  6. Trackpad et souris
+     - Défilement à deux doigts : vertical = déplacement dans les neurones ; horizontal = déplacement dans le
+       temps (met en pause ; la chaîne suit).
+     - Pincement (ou ctrl + molette) = zoom du temps ; Option + pincement (ou alt + molette) = zoom des
+       neurones autour du pointeur ; pincement sous Safari = zoom du temps.
+
+  7. Paramètres (constantes en tête du script)
+     N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH, N_TRAIL.
+
+  8. Hors périmètre / à venir
+     Reproduire les deux motifs de la figure (8 neurones, délais 3, 8, 4, 2 ms et 1, 6, 2, 8 ms) au lieu du
+     tirage aléatoire ; export de l'image en PNG ; durée du contexte réglable.
+-->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Izhikevich raster</title>
 <style>
-  :root { --bg: #0b0d12; --fg: #e8e8ea; --spike: #c9ced8; --now: #ff9f1c; --dim: #8a90a0; --line: #2a2f3a; --sel: #ff3b3b; --present: #4dabf7; }
+  :root { --bg: #0b0d12; --fg: #e8e8ea; --spike: #e6e9f0; --now: #ff9f1c; --dim: #8a90a0; --line: #2a2f3a;
+          --present: #4dabf7; --next: #2f6bff; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
                font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace; }
   canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
-  #ui { position: fixed; left: 12px; top: 10px; display: grid; grid-template-columns: auto 180px auto;
-        gap: 4px 10px; align-items: center; padding: 8px 12px; border-radius: 8px;
-        background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--dim); }
-  #ui input { accent-color: var(--now); width: 100%; }
-  #ui output { color: var(--fg); min-width: 4ch; text-align: right; }
+  #ui { position: fixed; left: 12px; top: 10px; padding: 8px 12px; border-radius: 8px;
+        background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--dim); transition: opacity .2s; }
+  #btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; max-width: 520px; }
+  #btns button, #zenExit { font: inherit; color: var(--fg); background: transparent; cursor: pointer;
+        border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+  #btns button:hover, #zenExit:hover { border-color: var(--dim); }
+  #btns button.on { background: color-mix(in srgb, var(--now) 25%, transparent); border-color: var(--now); }
+  #btns kbd { font: inherit; color: var(--dim); margin-left: 4px; }
+  #sliders { display: grid; grid-template-columns: auto 180px auto; gap: 4px 10px; align-items: center; }
+  #sliders input { accent-color: var(--now); width: 100%; }
+  #sliders output { color: var(--fg); min-width: 5ch; text-align: right; }
   #hud { position: fixed; left: 12px; bottom: 8px; color: var(--dim); pointer-events: none; }
+  #help { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--bg) 70%, transparent); }
+  #help.open { display: flex; }
+  #help > div { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 18px 26px;
+                max-width: 560px; color: var(--fg); }
+  #help h2 { margin: 0 0 10px; font-size: 14px; }
+  #help dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 0 0 12px; }
+  #help dt { color: var(--now); } #help dd { margin: 0; color: var(--dim); }
+  #zenExit { position: fixed; right: 12px; top: 10px; display: none; opacity: .25; }
+  #zenExit:hover { opacity: 1; }
+  /* zen mode: only the zoom sliders remain, faint until hovered */
+  body.zen #btns, body.zen #hud, body.zen .full-only { display: none; }
+  body.zen #ui { opacity: .25; }
+  body.zen #ui:hover { opacity: 1; }
+  body.zen #zenExit { display: block; }
 </style>
 </head>
 <body>
 <canvas id="raster"></canvas>
 <div id="ui">
-  <label for="zoom">neurons shown</label>
-  <input id="zoom" type="range" min="128" max="1000" step="1" value="1000"><output id="zoomOut"></output>
-  <label for="span">time window</label>
-  <input id="span" type="range" min="50" max="3000" step="10" value="1000"><output id="spanOut"></output>
-  <label for="first">first neuron</label>
-  <input id="first" type="range" min="0" max="0" step="1" value="0"><output id="firstOut"></output>
+  <div id="btns">
+    <button data-act="pause">Pause <kbd>space</kbd></button>
+    <button data-act="shade">41 ms <kbd>s</kbd></button>
+    <button data-act="chain">Chain <kbd>c</kbd></button>
+    <button data-act="step">Step <kbd>n</kbd></button>
+    <button data-act="back">Back <kbd>b</kbd></button>
+    <button data-act="delays">Delays <kbd>d</kbd></button>
+    <button data-act="slower">Slower <kbd>k</kbd></button>
+    <button data-act="faster">Faster <kbd>l</kbd></button>
+    <button data-act="full">Fullscreen <kbd>f</kbd></button>
+    <button data-act="zen">Zen <kbd>z</kbd></button>
+    <button data-act="reset">Reset view <kbd>r</kbd></button>
+    <button data-act="help">Help <kbd>?</kbd></button>
+  </div>
+  <div id="sliders">
+    <label for="zoom">neurons shown</label>
+    <input id="zoom" type="range" min="128" max="1000" step="1" value="1000"><output id="zoomOut"></output>
+    <label for="first">first neuron</label>
+    <input id="first" type="range" min="0" max="0" step="1" value="0"><output id="firstOut"></output>
+    <label for="span">time window</label>
+    <input id="span" type="range" min="50" max="3000" step="1" value="1000"><output id="spanOut"></output>
+    <label for="speed" class="full-only">speed</label>
+    <input id="speed" class="full-only" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut" class="full-only"></output>
+  </div>
 </div>
+<button id="zenExit" data-act="zen">exit zen <kbd>z</kbd></button>
 <div id="hud"></div>
+<div id="help"><div>
+  <h2>Keys</h2>
+  <dl>
+    <dt>space</dt><dd>pause / play</dd>
+    <dt>c</dt><dd>chain: red = current spike, coloured = its 41 ms context, blue = predicted spike</dd>
+    <dt>n / b</dt><dd>step forward / back, spike by spike (with the chain: context, prediction, window shift)</dd>
+    <dt>d</dt><dd>delay lines from the context to the predicted spike</dd>
+    <dt>s</dt><dd>shade the last 41 ms before the present</dd>
+    <dt>k / l</dt><dd>slower / faster</dd>
+    <dt>r</dt><dd>reset the view (1000 neurons, 1 s, speed ×1)</dd>
+    <dt>f / z</dt><dd>fullscreen / zen mode</dd>
+    <dt>? or h</dt><dd>this help</dd>
+  </dl>
+  <h2>Trackpad and mouse</h2>
+  <dl>
+    <dt>two-finger scroll</dt><dd>horizontal: move in time (pauses) &middot; vertical: move through the neurons</dd>
+    <dt>pinch</dt><dd>zoom the time window (ctrl + wheel)</dd>
+    <dt>option + pinch</dt><dd>zoom the neurons around the pointer (alt + wheel)</dd>
+  </dl>
+  <dd style="margin:0;color:var(--dim)">click anywhere to close</dd>
+</div></div>
 
 <script>
 // ---- parameters ------------------------------------------------------------
@@ -36,9 +161,11 @@ const T_TOTAL  = 3.0;      // s, duration of the signal (looped)
 const T_VIEW   = 1.0;      // s, duration shown on screen at start (horizontal zoom slider)
 const NOW_FRAC = 0.8;      // position of the present instant in the window
 const RATE     = 0.16;     // Hz, mean rate of each neuron
-const N_MIN     = 128;      // fewest neurons shown when zoomed in
-const T_SHADE  = 0.041;    // s, duration of the shaded context window (key s)
-const SPEED    = 1.0;      // real time = 1
+const N_MIN    = 128;      // fewest neurons shown when zoomed in
+const T_SHADE  = 0.041;    // s, duration of the context window
+const FLASH    = 0.15;     // s, duration of the flash of a spike reaching the present
+const N_TRAIL  = 8;        // number of previous predictions kept (faint) with the delay lines
+const SHIFTS   = [-T_TOTAL, 0, T_TOTAL];   // wrap-around of the loop
 
 // ---- seeded random generator -----------------------------------------------
 function mulberry32(a) {
@@ -58,20 +185,25 @@ function makeSpikes() {
   return { t: Float32Array.from(ev, e => e[0]), n: Uint16Array.from(ev, e => e[1]) };
 }
 const spikes = makeSpikes();
+const M = spikes.t.length;
 
 // first index with spikes.t[i] >= x
 function lowerBound(x) {
-  let lo = 0, hi = spikes.t.length;
+  let lo = 0, hi = M;
   while (lo < hi) { const mid = (lo + hi) >> 1; if (spikes.t[mid] < x) lo = mid + 1; else hi = mid; }
   return lo;
 }
+// index of the most recent spike at or before x (wrapping to the last spike of the previous period)
+function latestIndex(x) { const i = lowerBound(x + 1e-6) - 1; return i < 0 ? M - 1 : i; }
 
-// ---- drawing ----------------------------------------------------------------
+// ---- canvas -------------------------------------------------------------------
 const canvas = document.getElementById('raster');
 const ctx = canvas.getContext('2d');
 const hud = document.getElementById('hud');
 let W = 0, H = 0, dpr = 1;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {};
+for (const n of ['bg', 'fg', 'spike', 'now', 'line', 'present', 'next']) COL[n] = css('--' + n);
 
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -82,9 +214,10 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// vertical zoom: show nShown neurons starting at neuron first0
+// ---- sliders: vertical zoom, panning, horizontal zoom, speed -----------------
 const zoom = document.getElementById('zoom'), first = document.getElementById('first');
-let nShown = N_NEURON, first0 = 0;
+const span = document.getElementById('span'), speedS = document.getElementById('speed');
+let nShown = N_NEURON, first0 = 0, tView = T_VIEW, speed = 1;
 function updateView() {
   nShown = +zoom.value;
   first.max = N_NEURON - nShown;
@@ -94,119 +227,273 @@ function updateView() {
   document.getElementById('zoomOut').textContent = nShown;
   document.getElementById('firstOut').textContent = first0;
 }
-zoom.addEventListener('input', () => { updateView(); zoom.blur(); });
-first.addEventListener('input', updateView);
-zoom.min = N_MIN;
-updateView();
-
-// horizontal zoom: duration of the time axis
-const span = document.getElementById('span');
-let tView = T_VIEW;
-span.value = T_VIEW * 1000;
 function updateSpan() {
   tView = +span.value / 1000;
   document.getElementById('spanOut').textContent = `${span.value} ms`;
 }
-span.addEventListener('input', () => { updateSpan(); span.blur(); });
-updateSpan();
-
-let now = 0, paused = false, shade = false, last = performance.now();
-
-// selection (click on a spike while paused): the spike (red), the spikes of the T_SHADE before it
-// (orange) and their neurons, which stay colored once the animation resumes
-let sel = null;   // {k: index of the spike, t: its time, window: Set of indices of the spikes before it}
-const role = new Uint8Array(N_NEURON);   // 0: other, 1: neuron active in the window, 2: neuron of the clicked spike
-
-function select(k) {
-  role.fill(0);
-  if (k === null) { sel = null; return; }
-  const ts = spikes.t[k], win = new Set();
-  for (const shift of [-T_TOTAL, 0, T_TOTAL]) {
-    const a = lowerBound(ts - T_SHADE - shift), b = lowerBound(ts - shift);
-    for (let j = a; j < b; j++) if (spikes.t[j] + shift < ts) { win.add(j); role[spikes.n[j]] = 1; }
-  }
-  role[spikes.n[k]] = 2;
-  sel = {k, t: ts, window: win};
-  now = ts;   // align the time on the spike
+function updateSpeed() {
+  speed = Math.pow(10, +speedS.value);
+  document.getElementById('speedOut').textContent = `×${speed.toFixed(2)}`;
 }
+zoom.min = N_MIN;
+span.value = T_VIEW * 1000;
+zoom.addEventListener('input', () => { updateView(); zoom.blur(); });
+first.addEventListener('input', updateView);
+span.addEventListener('input', () => { updateSpan(); span.blur(); });
+speedS.addEventListener('input', () => { updateSpeed(); speedS.blur(); });
+updateView(); updateSpan(); updateSpeed();
 
-canvas.addEventListener('click', e => {
-  if (!paused) return;
-  const rowH = H / nShown, t0 = now - NOW_FRAC * tView;
-  const x = t => (t - t0) / tView * W;
-  const reach = 6;   // px
-  let best = null, bestD = Infinity;
-  for (const shift of [-T_TOTAL, 0, T_TOTAL]) {
-    const a = lowerBound(t0 + (e.clientX - reach) / W * tView - shift);
-    const b = lowerBound(t0 + (e.clientX + reach) / W * tView - shift);
-    for (let k = a; k < b; k++) {
-      const row = spikes.n[k] - first0;
-      if (row < 0 || row >= nShown) continue;
-      const dx = x(spikes.t[k] + shift) - e.clientX, dy = (row + 0.5) * rowH - e.clientY;
-      const d = Math.hypot(dx, Math.max(0, Math.abs(dy) - rowH / 2));
-      if (d < reach && d < bestD) { best = k; bestD = d; }
+// trackpad and mouse: pinch (or ctrl + wheel) zooms the time window, alt + pinch zooms the neurons
+// around the pointer, two-finger scroll pans in time (horizontal) and through the neurons (vertical);
+// Safari pinch (gesture events) zooms time
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+let spanF = +span.value, zoomF = +zoom.value;
+span.addEventListener('input', () => { spanF = +span.value; });
+zoom.addEventListener('input', () => { zoomF = +zoom.value; });
+function zoomTime(f) {
+  spanF = clamp(spanF * f, +span.min, +span.max); span.value = spanF; updateSpan();
+}
+function zoomNeurons(f, y) {
+  const centre = first0 + y / H * nShown;                       // neuron under the pointer
+  zoomF = clamp(zoomF * f, +zoom.min, +zoom.max); zoom.value = zoomF; updateView();
+  first.value = clamp(centre - y / H * nShown, 0, N_NEURON - nShown); updateView();
+}
+function panTime(dt) {   // moving in time pauses the animation; the chain follows the present
+  paused = true;
+  now = ((now + dt) % T_TOTAL + T_TOTAL) % T_TOTAL;
+  if (chainOn) setRef(latestIndex(now), 0);
+  syncButtons();
+}
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.altKey) {                                   // pinch gestures arrive as ctrl + wheel
+    const f = Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.003));  // pinch out (deltaY < 0) zooms in
+    if (e.altKey) zoomNeurons(f, e.clientY); else zoomTime(f);
+  } else {
+    if (e.deltaY) { first.value = clamp(first0 + e.deltaY * nShown / H, 0, N_NEURON - nShown); updateView(); }
+    if (Math.abs(e.deltaX) > 1) panTime(e.deltaX * tView / W);
+  }
+}, {passive: false});
+let g0 = 1;
+canvas.addEventListener('gesturestart', e => { e.preventDefault(); g0 = e.scale; });
+canvas.addEventListener('gesturechange', e => { e.preventDefault(); zoomTime(g0 / e.scale); g0 = e.scale; });
+
+// ---- state ---------------------------------------------------------------------
+let now = 0, paused = false, shade = false, last = performance.now();
+let chainOn = false, delays = true, zen = false;
+
+// chain: the context window (spikes of the last T_SHADE up to and including the reference spike `ref`),
+// and the predicted next spike. phase 0: context shown; 1: prediction (blue) shown; 2: window shifted to
+// the prediction, which is not yet coloured as the new reference.
+let chain = null;
+const hueMap = new Map();                // per-spike colours: spike index -> hue of the step which last had it in its context
+let trail = [];                          // previous predictions, kept faint: {src: [{j, t}], tt, tn}
+let stepN = 0;
+
+function contextOf(r) {
+  const tr = spikes.t[r], out = [];
+  for (const shift of SHIFTS) {
+    const a = lowerBound(tr - T_SHADE - shift), b = lowerBound(tr - shift + 1e-6);
+    for (let j = a; j < b; j++) {
+      const t = spikes.t[j] + shift;
+      if (t > tr - T_SHADE && t <= tr + 1e-6) out.push({j, t});
     }
   }
-  select(best);   // a click on nothing clears the selection
+  return out.sort((p, q) => p.t - q.t);
+}
+
+function setRef(r, phase, back = false) {
+  if (back) {
+    trail.pop();
+    const keep = new Set(contextOf(r).map(s => s.j));
+    for (const s of chain.win) if (!keep.has(s.j)) hueMap.delete(s.j);
+  } else if (chain) {
+    if (chain.next === r) {
+      trail.push({src: chain.win, tt: chain.nextT, tn: chain.next});
+      if (trail.length > N_TRAIL) trail.shift();
+    } else trail = [];
+    if (r < chain.ref) hueMap.clear();   // wrap-around of the loop
+  }
+  const win = contextOf(r), nk = (r + 1) % M;
+  chain = {ref: r, tr: spikes.t[r], win, inWin: new Set(win.map(s => s.j)), next: nk,
+           nextT: spikes.t[nk] + (nk > r ? 0 : T_TOTAL), phase};
+  if (back) stepN = Math.max(1, stepN - 1); else stepN++;
+  const hue = ((stepN - 1) * 137.508) % 360;
+  for (const s of win) hueMap.set(s.j, hue);
+}
+
+function chainOff() { chain = null; hueMap.clear(); trail = []; stepN = 0; }
+
+// ---- actions (keys and buttons) ------------------------------------------------
+function step() {
+  paused = true;
+  if (!chainOn) {   // jump to the next spike in time
+    let k = lowerBound(now + 1e-6);
+    if (k >= M) k = 0;
+    now = spikes.t[k];
+  } else if (chain.phase === 0) chain.phase = 1;            // show the prediction
+  else if (chain.phase === 1) { chain.phase = 2; now = spikes.t[chain.next]; }   // shift the window
+  else { const r = chain.next; setRef(r, 0); now = spikes.t[r]; }               // colour the new context
+}
+
+function stepBack() {
+  paused = true;
+  if (!chainOn) {   // jump to the previous spike in time
+    let k = lowerBound(now - 1e-6) - 1;
+    if (k < 0) k = M - 1;
+    now = spikes.t[k];
+  } else if (chain.phase === 2) { chain.phase = 1; now = chain.tr; }
+  else if (chain.phase === 1) chain.phase = 0;
+  else { setRef((chain.ref + M - 1) % M, 2, true); now = spikes.t[chain.next]; }
+}
+
+function resetView() {
+  zoom.value = zoomF = N_NEURON; first.value = 0; updateView();
+  span.value = spanF = T_VIEW * 1000; updateSpan();
+  speedS.value = 0; updateSpeed();
+}
+
+const acts = {
+  pause:  () => { paused = !paused; },
+  shade:  () => { shade = !shade; },
+  chain:  () => {
+    chainOn = !chainOn;
+    if (!chainOn) { chainOff(); return; }
+    const r = latestIndex(now);
+    setRef(r, paused ? 0 : 1);
+    if (paused) now = spikes.t[r];
+  },
+  step, back: stepBack, reset: resetView,
+  help:   () => document.getElementById('help').classList.toggle('open'),
+  delays: () => { delays = !delays; },
+  slower: () => { speedS.value = Math.max(+speedS.min, +speedS.value - 0.15); updateSpeed(); },
+  faster: () => { speedS.value = Math.min(+speedS.max, +speedS.value + 0.15); updateSpeed(); },
+  full:   () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  },
+  zen:    () => { zen = !zen; document.body.classList.toggle('zen', zen); },
+};
+const keys = {' ': 'pause', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'reset', '?': 'help', h: 'help', d: 'delays', k: 'slower', l: 'faster', f: 'full', z: 'zen'};
+
+const buttons = document.querySelectorAll('button[data-act]');
+function syncButtons() {
+  const on = {pause: paused, shade, chain: chainOn, delays,
+              full: !!document.fullscreenElement, zen};
+  for (const b of buttons) {
+    b.classList.toggle('on', !!on[b.dataset.act]);
+    if (b.dataset.act === 'pause') b.firstChild.textContent = paused ? 'Play ' : 'Pause ';
+  }
+}
+document.getElementById('help').addEventListener('click', () => acts.help());
+for (const b of buttons) b.addEventListener('click', () => { acts[b.dataset.act](); b.blur(); syncButtons(); });
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || !keys[e.key.toLowerCase()]) return;
+  e.preventDefault();
+  acts[keys[e.key.toLowerCase()]](); syncButtons();
 });
+document.addEventListener('fullscreenchange', syncButtons);
+syncButtons();
+
+// ---- drawing -------------------------------------------------------------------
+const hsl = h => `hsl(${h.toFixed(0)} 80% 60%)`;
 
 function draw() {
   const t0 = now - NOW_FRAC * tView, t1 = t0 + tView;
   const x = t => (t - t0) / tView * W;
   const rowH = H / nShown;
+  const rowY = n => (n - first0 + 0.5) * rowH;
+  const showNext = chainOn && chain && chain.phase >= 1;
 
-  ctx.fillStyle = css('--bg'); ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
 
-  // shaded area: the last T_SHADE seconds before the present instant
-  if (shade || (sel && paused)) {
-    ctx.globalAlpha = 0.18; ctx.fillStyle = css('--now');
+  // shaded area: the context window of the chain, or else the last T_SHADE before the present instant
+  if (chainOn && chain) {
+    const tEnd = chain.phase === 2 ? chain.nextT : chain.tr;
+    ctx.globalAlpha = 0.18; ctx.fillStyle = COL.now;
+    for (const shift of SHIFTS) ctx.fillRect(x(tEnd - T_SHADE + shift), 0, x(tEnd + shift) - x(tEnd - T_SHADE + shift), H);
+    ctx.globalAlpha = 1;
+  } else if (shade) {
+    ctx.globalAlpha = 0.18; ctx.fillStyle = COL.now;
     ctx.fillRect(x(now - T_SHADE), 0, x(now) - x(now - T_SHADE), H);
     ctx.globalAlpha = 1;
   }
 
   // bar of the present instant, behind the spikes like the shaded area
-  ctx.fillStyle = css('--present'); ctx.fillRect(x(now) - 1, 0, 2, H);
+  ctx.fillStyle = COL.present; ctx.fillRect(x(now) - 1, 0, 2, H);
 
   // one very thin line per neuron
-  ctx.strokeStyle = css('--line'); ctx.lineWidth = 0.5; ctx.beginPath();
+  ctx.strokeStyle = COL.line; ctx.lineWidth = 0.5; ctx.beginPath();
   for (let i = 0; i < nShown; i++) { const y = (i + 0.5) * rowH; ctx.moveTo(0, y); ctx.lineTo(W, y); }
   ctx.stroke();
 
-  // the present is brighter than the past; the future is faint
-  const tick = rowH >= 6 ? 0.8 * rowH : Math.max(6, 2 * rowH);   // height of the brief tick of a spike
-  for (const shift of [-T_TOTAL, 0, T_TOTAL]) {           // wrap-around of the loop
+  // delay lines from the spikes of a context window to the spike they predict
+  function group(g, alpha, label) {
+    ctx.strokeStyle = COL.next; ctx.fillStyle = COL.fg; ctx.lineWidth = 1; ctx.font = '11px ui-monospace, Menlo, monospace';
+    ctx.globalAlpha = alpha;
+    for (const shift of SHIFTS) {
+      const x2 = x(g.tt + shift), y2 = rowY(spikes.n[g.tn]);
+      for (const s of g.src) {
+        const x1 = x(s.t + shift), y1 = rowY(spikes.n[s.j]);
+        if (Math.max(x1, x2) < -50 || Math.min(x1, x2) > W + 50) continue;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        if (label) ctx.fillText(`${((g.tt - s.t) * 1000).toFixed(0)} ms`, (x1 + x2) / 2, (y1 + y2) / 2 - 3);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (chainOn && chain && delays) {
+    trail.forEach((g, i) => group(g, 0.06 + 0.2 * (i + 1) / trail.length, false));
+    if (showNext) group({src: chain.win, tt: chain.nextT, tn: chain.next}, 0.8, true);
+  }
+
+  // spikes: the present is brighter than the past; the future is faint
+  const tick = rowH >= 8 ? 0.8 * rowH : Math.max(8, 2 * rowH);   // height of the tick of a spike
+  for (const shift of SHIFTS) {
     const a = lowerBound(t0 - shift), b = lowerBound(t1 - shift);
     for (let k = a; k < b; k++) {
       const row = spikes.n[k] - first0;
       if (row < 0 || row >= nShown) continue;
-      const t = spikes.t[k] + shift;
-      const age = now - t;                                   // > 0 past, < 0 future
-      ctx.globalAlpha = age < 0 ? 0.18 : 0.35 + 0.65 * Math.exp(-age / 0.5);
-      const r = role[spikes.n[k]], hit = sel && (k === sel.k || sel.window.has(k));
-      ctx.fillStyle = css(r === 2 ? '--sel' : r === 1 ? '--now' : '--spike');
-      if (hit) ctx.globalAlpha = 1;
-      const w = hit ? 3 : 1.5, y = (row + 0.5) * rowH;
-      ctx.fillRect(x(t) - w / 2, y - tick / 2, w, tick);
+      const t = spikes.t[k] + shift, age = now - t;          // age > 0 past, < 0 future
+      let alpha = age < 0 ? 0.3 : 0.6 + 0.4 * Math.exp(-age / 0.8), color = COL.spike, w = 2.5;
+      const fl = age >= 0 && age < FLASH ? 1 - age / FLASH : 0;   // flash of the spike which has just reached the present
+      if (chainOn && chain) {
+        if (showNext && k === chain.next) { color = COL.next; w = 4; alpha = 1; }
+        else if (k === chain.ref) { color = hsl(hueMap.get(k)); w = 4; alpha = 1; }
+        else if (chain.inWin.has(k)) { color = hsl(hueMap.get(k)); w = 3; alpha = 1; }
+        else if (hueMap.has(k)) color = hsl(hueMap.get(k));
+      }
+      let h = tick;
+      if (fl > 0) {
+        alpha = 1; w += 5 * fl; h *= 1 + fl;
+        if (color === COL.spike) color = '#ffffff';
+        ctx.shadowColor = COL.present; ctx.shadowBlur = 14 * fl;
+      }
+      ctx.globalAlpha = alpha; ctx.fillStyle = color;
+      ctx.fillRect(x(t) - w / 2, (row + 0.5) * rowH - h / 2, w, h);
+      if (fl > 0) ctx.shadowBlur = 0;
     }
   }
   ctx.globalAlpha = 1;
 
-
-  hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   neurons ${first0}–${first0 + nShown - 1} of ${N_NEURON}   ·   space: pause   ·   click a spike (paused)   ·   esc: clear   ·   s: ${T_SHADE * 1000} ms window`;
+  const info = chainOn && chain ? `   ·   chain: step ${stepN}, phase ${chain.phase + 1}/3` : '';
+  hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   neurons ${first0}–${first0 + nShown - 1} of ${N_NEURON}   ·   ×${speed.toFixed(2)}${info}`;
 }
 
 function frame(ts) {
   const dt = (ts - last) / 1000; last = ts;
-  if (!paused) now = (now + dt * SPEED) % T_TOTAL;
+  if (!paused) {
+    now = (now + dt * speed) % T_TOTAL;
+    if (chainOn) {   // dynamic mode: the window jumps to each new spike as the present reaches it
+      const r = latestIndex(now);
+      if (r !== chain.ref) setRef(r, 1);
+      chain.phase = 1;
+    }
+  }
   draw();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-
-window.addEventListener('keydown', e => { if (e.code === 'Space') { paused = !paused; e.preventDefault(); }
-  else if (e.code === 'KeyS') shade = !shade;
-  else if (e.code === 'Escape') select(null);
-});
 </script>
 </body>
 </html>
