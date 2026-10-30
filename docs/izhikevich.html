@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Izhikevich raster</title>
+<style>
+  :root { --bg: #0b0d12; --fg: #e8e8ea; --spike: #c9ced8; --now: #ff9f1c; --dim: #8a90a0; --line: #2a2f3a; --sel: #ff3b3b; --present: #4dabf7; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
+               font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #ui { position: fixed; left: 12px; top: 10px; display: grid; grid-template-columns: auto 180px auto;
+        gap: 4px 10px; align-items: center; padding: 8px 12px; border-radius: 8px;
+        background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--dim); }
+  #ui input { accent-color: var(--now); width: 100%; }
+  #ui output { color: var(--fg); min-width: 4ch; text-align: right; }
+  #hud { position: fixed; left: 12px; bottom: 8px; color: var(--dim); pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="raster"></canvas>
+<div id="ui">
+  <label for="zoom">neurons shown</label>
+  <input id="zoom" type="range" min="128" max="1000" step="1" value="1000"><output id="zoomOut"></output>
+  <label for="span">time window</label>
+  <input id="span" type="range" min="50" max="3000" step="10" value="1000"><output id="spanOut"></output>
+  <label for="first">first neuron</label>
+  <input id="first" type="range" min="0" max="0" step="1" value="0"><output id="firstOut"></output>
+</div>
+<div id="hud"></div>
+
+<script>
+// ---- parameters ------------------------------------------------------------
+const N_NEURON = 1000;     // neurons
+const T_TOTAL  = 3.0;      // s, duration of the signal (looped)
+const T_VIEW   = 1.0;      // s, duration shown on screen at start (horizontal zoom slider)
+const NOW_FRAC = 0.8;      // position of the present instant in the window
+const RATE     = 0.16;     // Hz, mean rate of each neuron
+const N_MIN     = 128;      // fewest neurons shown when zoomed in
+const T_SHADE  = 0.041;    // s, duration of the shaded context window (key s)
+const SPEED    = 1.0;      // real time = 1
+
+// ---- seeded random generator -----------------------------------------------
+function mulberry32(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const rand = mulberry32(2026);
+
+// ---- spikes: one Poisson draw at initialisation, then frozen and replayed identically each period
+function makeSpikes() {
+  const ev = [];
+  for (let i = 0; i < N_NEURON; i++) {
+    let t = -Math.log(1 - rand()) / RATE;
+    while (t < T_TOTAL) { ev.push([t, i]); t += -Math.log(1 - rand()) / RATE; }
+  }
+  ev.sort((a, b) => a[0] - b[0]);
+  return { t: Float32Array.from(ev, e => e[0]), n: Uint16Array.from(ev, e => e[1]) };
+}
+const spikes = makeSpikes();
+
+// first index with spikes.t[i] >= x
+function lowerBound(x) {
+  let lo = 0, hi = spikes.t.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (spikes.t[mid] < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+
+// ---- drawing ----------------------------------------------------------------
+const canvas = document.getElementById('raster');
+const ctx = canvas.getContext('2d');
+const hud = document.getElementById('hud');
+let W = 0, H = 0, dpr = 1;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// vertical zoom: show nShown neurons starting at neuron first0
+const zoom = document.getElementById('zoom'), first = document.getElementById('first');
+let nShown = N_NEURON, first0 = 0;
+function updateView() {
+  nShown = +zoom.value;
+  first.max = N_NEURON - nShown;
+  first0 = Math.min(+first.value, N_NEURON - nShown);
+  first.value = first0;
+  first.disabled = nShown === N_NEURON;
+  document.getElementById('zoomOut').textContent = nShown;
+  document.getElementById('firstOut').textContent = first0;
+}
+zoom.addEventListener('input', () => { updateView(); zoom.blur(); });
+first.addEventListener('input', updateView);
+zoom.min = N_MIN;
+updateView();
+
+// horizontal zoom: duration of the time axis
+const span = document.getElementById('span');
+let tView = T_VIEW;
+span.value = T_VIEW * 1000;
+function updateSpan() {
+  tView = +span.value / 1000;
+  document.getElementById('spanOut').textContent = `${span.value} ms`;
+}
+span.addEventListener('input', () => { updateSpan(); span.blur(); });
+updateSpan();
+
+let now = 0, paused = false, shade = false, last = performance.now();
+
+// selection (click on a spike while paused): the spike (red), the spikes of the T_SHADE before it
+// (orange) and their neurons, which stay colored once the animation resumes
+let sel = null;   // {k: index of the spike, t: its time, window: Set of indices of the spikes before it}
+const role = new Uint8Array(N_NEURON);   // 0: other, 1: neuron active in the window, 2: neuron of the clicked spike
+
+function select(k) {
+  role.fill(0);
+  if (k === null) { sel = null; return; }
+  const ts = spikes.t[k], win = new Set();
+  for (const shift of [-T_TOTAL, 0, T_TOTAL]) {
+    const a = lowerBound(ts - T_SHADE - shift), b = lowerBound(ts - shift);
+    for (let j = a; j < b; j++) if (spikes.t[j] + shift < ts) { win.add(j); role[spikes.n[j]] = 1; }
+  }
+  role[spikes.n[k]] = 2;
+  sel = {k, t: ts, window: win};
+  now = ts;   // align the time on the spike
+}
+
+canvas.addEventListener('click', e => {
+  if (!paused) return;
+  const rowH = H / nShown, t0 = now - NOW_FRAC * tView;
+  const x = t => (t - t0) / tView * W;
+  const reach = 6;   // px
+  let best = null, bestD = Infinity;
+  for (const shift of [-T_TOTAL, 0, T_TOTAL]) {
+    const a = lowerBound(t0 + (e.clientX - reach) / W * tView - shift);
+    const b = lowerBound(t0 + (e.clientX + reach) / W * tView - shift);
+    for (let k = a; k < b; k++) {
+      const row = spikes.n[k] - first0;
+      if (row < 0 || row >= nShown) continue;
+      const dx = x(spikes.t[k] + shift) - e.clientX, dy = (row + 0.5) * rowH - e.clientY;
+      const d = Math.hypot(dx, Math.max(0, Math.abs(dy) - rowH / 2));
+      if (d < reach && d < bestD) { best = k; bestD = d; }
+    }
+  }
+  select(best);   // a click on nothing clears the selection
+});
+
+function draw() {
+  const t0 = now - NOW_FRAC * tView, t1 = t0 + tView;
+  const x = t => (t - t0) / tView * W;
+  const rowH = H / nShown;
+
+  ctx.fillStyle = css('--bg'); ctx.fillRect(0, 0, W, H);
+
+  // shaded area: the last T_SHADE seconds before the present instant
+  if (shade || (sel && paused)) {
+    ctx.globalAlpha = 0.18; ctx.fillStyle = css('--now');
+    ctx.fillRect(x(now - T_SHADE), 0, x(now) - x(now - T_SHADE), H);
+    ctx.globalAlpha = 1;
+  }
+
+  // bar of the present instant, behind the spikes like the shaded area
+  ctx.fillStyle = css('--present'); ctx.fillRect(x(now) - 1, 0, 2, H);
+
+  // one very thin line per neuron
+  ctx.strokeStyle = css('--line'); ctx.lineWidth = 0.5; ctx.beginPath();
+  for (let i = 0; i < nShown; i++) { const y = (i + 0.5) * rowH; ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+
+  // the present is brighter than the past; the future is faint
+  const tick = rowH >= 6 ? 0.8 * rowH : Math.max(6, 2 * rowH);   // height of the brief tick of a spike
+  for (const shift of [-T_TOTAL, 0, T_TOTAL]) {           // wrap-around of the loop
+    const a = lowerBound(t0 - shift), b = lowerBound(t1 - shift);
+    for (let k = a; k < b; k++) {
+      const row = spikes.n[k] - first0;
+      if (row < 0 || row >= nShown) continue;
+      const t = spikes.t[k] + shift;
+      const age = now - t;                                   // > 0 past, < 0 future
+      ctx.globalAlpha = age < 0 ? 0.18 : 0.35 + 0.65 * Math.exp(-age / 0.5);
+      const r = role[spikes.n[k]], hit = sel && (k === sel.k || sel.window.has(k));
+      ctx.fillStyle = css(r === 2 ? '--sel' : r === 1 ? '--now' : '--spike');
+      if (hit) ctx.globalAlpha = 1;
+      const w = hit ? 3 : 1.5, y = (row + 0.5) * rowH;
+      ctx.fillRect(x(t) - w / 2, y - tick / 2, w, tick);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+
+  hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   neurons ${first0}–${first0 + nShown - 1} of ${N_NEURON}   ·   space: pause   ·   click a spike (paused)   ·   esc: clear   ·   s: ${T_SHADE * 1000} ms window`;
+}
+
+function frame(ts) {
+  const dt = (ts - last) / 1000; last = ts;
+  if (!paused) now = (now + dt * SPEED) % T_TOTAL;
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+window.addEventListener('keydown', e => { if (e.code === 'Space') { paused = !paused; e.preventDefault(); }
+  else if (e.code === 'KeyS') shade = !shade;
+  else if (e.code === 'Escape') select(null);
+});
+</script>
+</body>
+</html>
