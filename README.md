@@ -2,7 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Licence: GPL-3.0](https://img.shields.io/badge/Licence-GPL--3.0-green.svg)](LICENSE)
-[![Paper](https://img.shields.io/badge/Paper-ICANN%202026-orange.svg)](https://laurentperrinet.github.io/publication/perrinet-26/)
+[![Paper](https://img.shields.io/badge/Paper-preprint-orange.svg)](https://laurentperrinet.github.io/publication/perrinet-26/)
 [![Docs](https://img.shields.io/badge/Docs-spikeai.github.io%2FMNESIS-purple.svg)](https://spikeai.github.io/MNESIS/)
 
 > **MNESIS** — *a Memory Network where Every Spike Is Sacred*
@@ -11,7 +11,7 @@ MNESIS is a recurrent spiking neural network (SNN) with heterogeneous synaptic d
 
 This repository holds the implementation, the experiment notebooks and the LaTeX source of the paper.
 
-**Paper:** Laurent U. Perrinet (2026). *Working Memory with Polychronous Chains*. ICANN 2026 · [publication page](https://laurentperrinet.github.io/publication/perrinet-26/) · arXiv [`2604.14096`](https://arxiv.org/abs/2604.14096).
+**Paper:** Laurent U. Perrinet (2026). *Working Memory with Polychronous Chains*. Submitted preprint · [publication page](https://laurentperrinet.github.io/publication/perrinet-26/) · arXiv [`2604.14096`](https://arxiv.org/abs/2604.14096).
 
 ---
 
@@ -75,10 +75,9 @@ See [Installation & Quickstart](https://spikeai.github.io/MNESIS/installation.ht
 ## Citation
 
 ```bibtex
-@inproceedings{Perrinet2026MNESIS,
+@misc{Perrinet2026MNESIS,
   author       = {Perrinet, Laurent U.},
   title        = {Working Memory with Polychronous Chains},
-  booktitle    = {ICANN 2026},
   year         = {2026},
   eprint       = {2604.14096},
   archivePrefix = {arXiv},

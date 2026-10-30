@@ -5,7 +5,7 @@
    :target: https://www.python.org/downloads/
 .. image:: https://img.shields.io/badge/License-GPL--3.0-green.svg
    :target: https://github.com/SpikeAI/MNESIS/blob/main/LICENSE
-.. image:: https://img.shields.io/badge/Paper-ICANN%202026-orange.svg
+.. image:: https://img.shields.io/badge/Paper-preprint-orange.svg
    :target: https://laurentperrinet.github.io/publication/perrinet-26/
 ```
 
@@ -31,8 +31,20 @@ motifs. The experiments build on one another: each numbered notebook imports the
 shared infrastructure and loads the cached artifacts produced by the previous one.
 
 **Paper:** Laurent U. Perrinet (2026). *Working Memory with Polychronous Chains*.
-ICANN 2026.
+Submitted preprint.
 [`https://laurentperrinet.github.io/publication/perrinet-26/`](https://laurentperrinet.github.io/publication/perrinet-26/)
+
+### Interactive raster
+
+An interactive spike raster (space: pause, click a spike while paused to highlight the
+spikes of the preceding context window, `s`: shade that window). It opens
+[in its own page](izhikevich.html) as well.
+
+```{raw} html
+<iframe src="izhikevich.html" title="Interactive spike raster"
+        style="width:100%; height:32em; border:1px solid #888; border-radius:6px;"
+        loading="lazy" allowfullscreen></iframe>
+```
 
 ## Model
 
@@ -149,10 +161,9 @@ scores quoted.
 ## Citation
 
 ```bibtex
-@inproceedings{Perrinet2026MNESIS,
+@misc{Perrinet2026MNESIS,
   author        = {Perrinet, Laurent U.},
   title         = {Working Memory with Polychronous Chains},
-  booktitle     = {ICANN 2026},
   year          = {2026},
   eprint        = {2604.14096},
   archivePrefix = {arXiv},

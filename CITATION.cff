@@ -35,7 +35,7 @@ keywords:
   - surrogate gradient
   - snntorch
 preferred-citation:
-  type: conference-paper
+  type: article
   title: >-
     Working Memory with Polychronous Chains
   authors:
@@ -45,8 +45,6 @@ preferred-citation:
         Institut de Neurosciences de la Timone (UMR 7289),
         Aix Marseille Univ, CNRS, Marseille, France
       orcid: 'https://orcid.org/0000-0002-9536-010X'
-  conference:
-    name: International Conference on Artificial Neural Networks (ICANN 2026)
   year: 2026
   url: 'https://laurentperrinet.github.io/publication/perrinet-26/'
   identifiers:

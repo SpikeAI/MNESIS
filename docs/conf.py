@@ -75,6 +75,7 @@ templates_path = []
 
 html_theme = "furo"
 html_static_path = []
+html_extra_path = ["izhikevich.html"]   # interactive raster, embedded in index.md
 html_title = "MNESIS | Working Memory with Polychronous Chains"
 
 html_context = {

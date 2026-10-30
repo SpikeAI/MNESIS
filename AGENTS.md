@@ -18,8 +18,8 @@ Around them:
 - **`docs/`** — Sphinx sources of the documentation site (Markdown pages,
   `conf.py`, `Makefile`); built and deployed to GitHub Pages by
   `.github/workflows/static.yml` (see [Documentation site](#documentation-site)).
-- **`CITATION.cff`** — citation metadata (preferred citation: the ICANN 2026
-  paper, arXiv `2604.14096`); keep it in sync with the BibTeX entry of `README.md`
+- **`CITATION.cff`** — citation metadata (preferred citation: the 2026
+  preprint, arXiv `2604.14096`); keep it in sync with the BibTeX entry of `README.md`
   and `docs/index.md`.
 - **`cached_data/`** — git-ignored cache of weights and scan results.
 
@@ -59,7 +59,7 @@ artifacts from the previous one. They **import** from the two modules — they d
 the two modules; any reference to those notebook numbers in old documents is stale.
 
 Notebooks 32, 34, 36 (all its variants) and 38 were removed: they moved to the SCALA
-project and are not in the ICANN paper. `figure_wave` and the Lorenz experiment were
+project and are not in the paper. `figure_wave` and the Lorenz experiment were
 removed as well; any reference to them is stale.
 
 ---
