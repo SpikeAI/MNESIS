@@ -14,7 +14,8 @@
   2. Signal
      - 1000 neurones, signal de T_TOTAL = 3 s, rejoué en boucle sans coupure au raccord.
      - Un seul tirage de Poisson à 0,16 Hz par neurone, fait à l'initialisation avec un générateur à graine
-       fixe (mulberry32), puis gelé : les trains de spikes sont rejoués à l'identique à chaque période.
+       fixe (mulberry32), discrétisé au pas de 1 ms (DT) sans que deux neurones tirent au même instant (un
+       spike dont l'instant est pris passe au pas libre suivant), puis gelé : les trains de spikes sont rejoués à l'identique à chaque période.
        Il n'y a pas de motif inséré. Le tirage aléatoire ne contient donc pas de vrais groupes polychrones.
 
   3. Affichage
@@ -25,6 +26,8 @@
        zone ombrée. Le passé s'estompe, le futur est pâle.
      - Zoom sur les neurones : de 1000 à 128 neurones affichés (128 lignes à 128), avec un curseur
        « first neuron » pour se déplacer quand on zoome.
+     - Spike prédit (phase de prédiction) : dessiné aussi grand qu'un spike qui atteint le présent (élargi,
+       allongé, avec un halo), en bleu.
      - Visibilité : spikes larges et clairs ; le spike qui atteint le présent « flashe » pendant 150 ms
        (blanc, halo bleu, élargi).
      - Zone ombrée (touche s, toujours affichée avec la chaîne) : les 41 ms qui précèdent le présent. Elle est
@@ -47,6 +50,9 @@
        (comme les trajectoires du panneau droit de la figure) ; les prédictions précédentes restent estompées.
 
   5. Commandes (chacune a un bouton, la touche est affichée sur le bouton ; ? ou h ouvre l'aide)
+     Pause : l'animation ne s'arrête pas n'importe où, elle continue jusqu'au spike suivant le plus proche et
+     s'arrête exactement à son instant (un second appui annule la demande) ; avec la chaîne, la séquence
+     repart alors du contexte de ce spike.
      Les boutons du haut suivent la séquence de la présentation : 1 Slower (ralentir), 2 Pause, Chain,
      Delays, 3 Next (spike suivant, touche n), 4 Play ; viennent ensuite Back et les réglages. Les boutons
      Pause et Play font chacun une moitié de la bascule de la barre d'espace.
@@ -158,7 +164,7 @@
 <div id="help"><div>
   <h2>Keys</h2>
   <dl>
-    <dt>space</dt><dd>pause / play (the buttons Pause and Play do each half)</dd>
+    <dt>space</dt><dd>pause / play: a pause waits for the closest next spike and stops on it (press again to cancel); the buttons Pause and Play do each half</dd>
     <dt>c</dt><dd>chain: red = current spike, coloured = its 41 ms context, blue = predicted spike</dd>
     <dt>n / b</dt><dd>next / back, spike by spike (with the chain: context, prediction, window shift)</dd>
     <dt>d</dt><dd>delay lines from the spikes of the 41 ms window (dashed box) which ends at the predicted spike, to it</dd>
@@ -193,6 +199,7 @@ const N_MIN    = 128;      // fewest neurons shown when zoomed in
 const T_SHADE  = 0.041;    // s, duration of the context window
 const FLASH    = 0.15;     // s, duration of the flash of a spike reaching the present
 const N_TRAIL  = 8;        // number of previous predictions kept (faint) with the delay lines
+const DT       = 0.001;    // s, time step: spike times are multiples of it, and at most one neuron fires at each step
 const SHIFTS   = [-T_TOTAL, 0, T_TOTAL];   // wrap-around of the loop
 
 // ---- seeded random generator -----------------------------------------------
@@ -209,8 +216,17 @@ function makeSpikes() {
     let t = -Math.log(1 - rand()) / RATE;
     while (t < T_TOTAL) { ev.push([t, i]); t += -Math.log(1 - rand()) / RATE; }
   }
+  // discretise to the time step, and never let two neurons fire at the same instant: a spike whose step is
+  // already taken moves to the next free step
+  const nBin = Math.round(T_TOTAL / DT), used = new Uint8Array(nBin);
   ev.sort((a, b) => a[0] - b[0]);
-  return { t: Float32Array.from(ev, e => e[0]), n: Uint16Array.from(ev, e => e[1]) };
+  for (const e of ev) {
+    let b = Math.min(nBin - 1, Math.floor(e[0] / DT));
+    while (used[b]) b = (b + 1) % nBin;
+    used[b] = 1; e[0] = b * DT;
+  }
+  ev.sort((a, b) => a[0] - b[0]);
+  return { t: Float64Array.from(ev, e => e[0]), n: Uint16Array.from(ev, e => e[1]) };
 }
 const spikes = makeSpikes();
 const M = spikes.t.length;
@@ -297,7 +313,7 @@ function zoomNeurons(f, y) {
 }
 function panNeurons(rows) { first.value = clamp(first0 + rows, 0, N_NEURON - nShown); updateView(); }
 function panTime(dt) {   // moving in time pauses the animation; the chain follows the present
-  paused = true;
+  paused = true; pausing = false;
   now = ((now + dt) % T_TOTAL + T_TOTAL) % T_TOTAL;
   if (chainOn) setRef(latestIndex(now), 0);
   syncButtons();
@@ -349,7 +365,7 @@ canvas.addEventListener('gesturestart', e => { e.preventDefault(); g0 = e.scale;
 canvas.addEventListener('gesturechange', e => { e.preventDefault(); zoomTime(g0 / e.scale); g0 = e.scale; });
 
 // ---- state ---------------------------------------------------------------------
-let now = 0, paused = false, shade = false, last = performance.now();
+let now = 0, paused = false, pausing = false, pauseAt = 0, shade = false, last = performance.now();
 let chainOn = false, delays = false, zen = false;   // the delay lines are off until the Delays button / key d
 
 // chain: the context window (spikes of the last T_SHADE up to and including the reference spike `ref`),
@@ -366,7 +382,7 @@ function contextOf(r) {
     const a = lowerBound(tr - T_SHADE - shift), b = lowerBound(tr - shift + 1e-6);
     for (let j = a; j < b; j++) {
       const t = spikes.t[j] + shift;
-      if (t > tr - T_SHADE && t <= tr + 1e-6) out.push({j, t});
+      if (t > tr - T_SHADE + 1e-9 && t <= tr + 1e-6) out.push({j, t});
     }
   }
   return out.sort((p, q) => p.t - q.t);
@@ -398,7 +414,7 @@ function chainOff() { chain = null; hueMap.clear(); trail = []; stepN = 0; }
 
 // ---- actions (keys and buttons) ------------------------------------------------
 function step() {
-  paused = true;
+  paused = true; pausing = false;
   if (!chainOn) {   // jump to the next spike in time
     let k = lowerBound(now + 1e-6);
     if (k >= M) k = 0;
@@ -409,7 +425,7 @@ function step() {
 }
 
 function stepBack() {
-  paused = true;
+  paused = true; pausing = false;
   if (!chainOn) {   // jump to the previous spike in time
     let k = lowerBound(now - 1e-6) - 1;
     if (k < 0) k = M - 1;
@@ -426,9 +442,14 @@ function resetView() {
 }
 
 const acts = {
-  toggle: () => { paused = !paused; },
-  pause:  () => { paused = true; },
-  play:   () => { paused = false; },
+  toggle: () => { if (paused || pausing) acts.play(); else acts.pause(); },
+  pause:  () => {   // the animation stops on the closest next spike: it keeps running until the present reaches it
+    if (paused || pausing) return;
+    const k = lowerBound(now + 1e-6);
+    pauseAt = k < M ? spikes.t[k] : spikes.t[0] + T_TOTAL;   // time of the spike, in the frame of `now` (may be > T_TOTAL)
+    pausing = true;
+  },
+  play:   () => { paused = false; pausing = false; },
   shade:  () => { shade = !shade; },
   chain:  () => {
     chainOn = !chainOn;
@@ -452,7 +473,7 @@ const keys = {' ': 'toggle', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'r
 
 const buttons = document.querySelectorAll('button[data-act]');
 function syncButtons() {
-  const on = {pause: paused, play: !paused, shade, chain: chainOn, delays,
+  const on = {pause: paused || pausing, play: !paused && !pausing, shade, chain: chainOn, delays,
               full: !!document.fullscreenElement, zen};
   for (const b of buttons) {
     b.classList.toggle('on', !!on[b.dataset.act]);
@@ -533,22 +554,24 @@ function draw() {
       if (row < 0 || row >= nShown) continue;
       const t = spikes.t[k] + shift, age = now - t;          // age > 0 past, < 0 future
       let alpha = age < 0 ? 0.3 : 0.6 + 0.4 * Math.exp(-age / 0.8), color = COL.spike, w = 2.5;
+      let fl2 = 0;   // the predicted spike is drawn as large as a spike reaching the present
       const fl = age >= 0 && age < FLASH ? 1 - age / FLASH : 0;   // flash of the spike which has just reached the present
       if (chainOn && chain) {
-        if (showNext && k === chain.next) { color = COL.next; w = 4; alpha = 1; }
+        if (showNext && k === chain.next) { color = COL.next; fl2 = 1; alpha = 1; }
         else if (k === chain.ref) { color = hsl(hueMap.get(k)); w = 4; alpha = 1; }
         else if (chain.inWin.has(k)) { color = hsl(hueMap.get(k)); w = 3; alpha = 1; }
         else if (hueMap.has(k)) color = hsl(hueMap.get(k));
       }
       let h = tick;
-      if (fl > 0) {
+      if (fl2) { w += 5; h *= 2; ctx.shadowColor = COL.next; ctx.shadowBlur = 14; }
+      else if (fl > 0) {
         alpha = 1; w += 5 * fl; h *= 1 + fl;
         if (color === COL.spike) color = '#ffffff';
         ctx.shadowColor = COL.present; ctx.shadowBlur = 14 * fl;
       }
       ctx.globalAlpha = alpha; ctx.fillStyle = color;
       ctx.fillRect(x(t) - w / 2, (row + 0.5) * rowH - h / 2, w, h);
-      if (fl > 0) ctx.shadowBlur = 0;
+      if (fl > 0 || fl2) ctx.shadowBlur = 0;
     }
   }
   ctx.globalAlpha = 1;
@@ -560,8 +583,12 @@ function draw() {
 function frame(ts) {
   const dt = (ts - last) / 1000; last = ts;
   if (!paused) {
-    now = (now + dt * speed) % T_TOTAL;
-    if (chainOn) {   // dynamic mode: the window jumps to each new spike as the present reaches it
+    let nn = now + dt * speed;
+    if (pausing && nn >= pauseAt) { nn = pauseAt; paused = true; pausing = false; syncButtons(); }   // arrived on the spike
+    else if (pausing && nn >= T_TOTAL) pauseAt -= T_TOTAL;
+    now = nn % T_TOTAL;
+    if (paused && chainOn) setRef(latestIndex(now), 0);   // stopped on a spike: start the sequence from its context
+    else if (chainOn) {   // dynamic mode: the window jumps to each new spike as the present reaches it
       const r = latestIndex(now);
       if (r !== chain.ref) setRef(r, 1);
       chain.phase = 1;
