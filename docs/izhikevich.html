@@ -27,24 +27,30 @@
        « first neuron » pour se déplacer quand on zoome.
      - Visibilité : spikes larges et clairs ; le spike qui atteint le présent « flashe » pendant 150 ms
        (blanc, halo bleu, élargi).
-     - Zone ombrée (touche s) : les 41 ms qui précèdent le présent.
+     - Zone ombrée (touche s, toujours affichée avec la chaîne) : les 41 ms qui précèdent le présent. Elle est
+       toujours ancrée à la barre du présent et la suit.
 
   4. Mode chaîne (touche c) : simulation du mécanisme de la figure
      - L'activer sélectionne le spike le plus récent avant le présent : il est la référence (couleur forte).
-       Les spikes des 41 ms qui le précèdent forment son contexte, de la même teinte, et la zone ombrée se
-       cale sur lui. Le spike suivant dans le temps (rebouclage à 3 s) est la prédiction, en bleu.
+       Les spikes des 41 ms qui le précèdent forment son contexte, de la même teinte ; en pas à pas, le présent s'aligne sur lui
+       et la zone ombrée, toujours ancrée au présent, le suit. Le spike suivant dans le temps (rebouclage à 3 s) est la prédiction, en bleu.
      - Une teinte par étape (angle d'or de 137,5°). Un spike qui sort de la fenêtre garde la teinte de la
        dernière étape où il était dans le contexte. Désactiver la chaîne remet toutes les couleurs à zéro.
-     - Mode dynamique (lecture, éventuellement ralentie) : la fenêtre saute de spike en spike quand le
-       présent atteint le suivant.
-     - Pas à pas (n, retour avec b), en pause : cycle de 3 pressions sur un spike : 1. contexte coloré ;
+     - Mode dynamique (lecture, éventuellement ralentie) : le contexte coloré saute de spike en spike quand le
+       présent atteint le suivant ; la zone ombrée suit le présent sans saut.
+     - Pas à pas (Next = n, retour avec b), en pause : cycle de 3 pressions sur un spike : 1. contexte coloré ;
        2. prédiction en bleu ; 3. décalage de la fenêtre sur le spike prédit, qui devient la nouvelle
        référence. Sans la chaîne, n et b sautent au spike suivant ou précédent.
-     - Délais (touche d) : une ligne relie chaque spike du contexte au spike prédit, avec le délai en ms
+     - Délais (touche d, désactivés au départ) : une ligne relie au spike prédit uniquement les spikes de la
+       fenêtre de 41 ms qui se termine sur lui (cadre en pointillés pendant la prédiction, qui devient la zone
+       ombrée à l'étape suivante) ; les délais sont donc tous inférieurs à 41 ms, avec le délai en ms
        (comme les trajectoires du panneau droit de la figure) ; les prédictions précédentes restent estompées.
 
   5. Commandes (chacune a un bouton, la touche est affichée sur le bouton ; ? ou h ouvre l'aide)
-     espace pause/lecture · s zone de 41 ms · c chaîne · n / b pas en avant / en arrière · d délais ·
+     Les boutons du haut suivent la séquence de la présentation : 1 Slower (ralentir), 2 Pause, Chain,
+     Delays, 3 Next (spike suivant, touche n), 4 Play ; viennent ensuite Back et les réglages. Les boutons
+     Pause et Play font chacun une moitié de la bascule de la barre d'espace.
+     espace pause/lecture · s zone de 41 ms · c chaîne · n / b spike suivant / précédent (Next / Back) · d délais ·
      k / l plus lent / plus rapide (curseur « speed », ×0,02 à ×1) · r réinitialiser la vue ·
      f plein écran · z mode zen (interface minimale : il ne reste que les curseurs de zoom, discrets) ·
      ? ou h aide à l'écran.
@@ -55,7 +61,13 @@
      - Défilement à deux doigts : vertical = déplacement dans les neurones ; horizontal = déplacement dans le
        temps (met en pause ; la chaîne suit).
      - Pincement (ou ctrl + molette) = zoom du temps ; Option + pincement (ou alt + molette) = zoom des
-       neurones autour du pointeur ; pincement sous Safari = zoom du temps.
+       neurones autour du pointeur ; pincement sous Safari = zoom du temps. Un pincement de trackpad ne donne
+       aucune direction au navigateur, d'où la touche Option.
+     - Écran tactile ou stylet : un doigt déplace la vue (temps et neurones, glisser avec la souris fait de
+       même) ; avec deux doigts, l'écart horizontal zoome le temps et l'écart vertical zoome les neurones
+       (un axe dont les doigts sont à moins de 30 px est ignoré).
+     - Le curseur « neurons shown » zoome autour du centre de la vue ; au chargement, tous les neurones sont
+       affichés, quelle que soit la valeur que le navigateur pourrait restaurer.
 
   7. Paramètres (constantes en tête du script)
      N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH, N_TRAIL.
@@ -72,7 +84,7 @@
           --present: #4dabf7; --next: #2f6bff; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
                font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace; }
-  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
   #ui { position: fixed; left: 12px; top: 10px; padding: 8px 12px; border-radius: 8px;
         background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--dim); transition: opacity .2s; }
   #btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; max-width: 520px; }
@@ -80,6 +92,9 @@
         border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
   #btns button:hover, #zenExit:hover { border-color: var(--dim); }
   #btns button.on { background: color-mix(in srgb, var(--now) 25%, transparent); border-color: var(--now); }
+  #btns { align-items: center; }
+  #btns .num { color: var(--now); font-weight: bold; margin-left: 4px; }
+  #btns .sep { flex-basis: 100%; height: 0; }
   #btns kbd { font: inherit; color: var(--dim); margin-left: 4px; }
   #sliders { display: grid; grid-template-columns: auto 180px auto; gap: 4px 10px; align-items: center; }
   #sliders input { accent-color: var(--now); width: 100%; }
@@ -106,28 +121,36 @@
 <canvas id="raster"></canvas>
 <div id="ui">
   <div id="btns">
-    <button data-act="pause">Pause <kbd>space</kbd></button>
-    <button data-act="shade">41 ms <kbd>s</kbd></button>
-    <button data-act="chain">Chain <kbd>c</kbd></button>
-    <button data-act="step">Step <kbd>n</kbd></button>
-    <button data-act="back">Back <kbd>b</kbd></button>
-    <button data-act="delays">Delays <kbd>d</kbd></button>
+    <!-- the first buttons follow the sequence of the talk: 1 slow down, 2 pause and show a chain with its delays,
+         3 step to the next spikes, 4 play again -->
+    <span class="num">1</span>
     <button data-act="slower">Slower <kbd>k</kbd></button>
+    <span class="num">2</span>
+    <button data-act="pause">Pause <kbd>space</kbd></button>
+    <button data-act="chain">Chain <kbd>c</kbd></button>
+    <button data-act="delays">Delays <kbd>d</kbd></button>
+    <span class="num">3</span>
+    <button data-act="step">Next <kbd>n</kbd></button>
+    <span class="num">4</span>
+    <button data-act="play">Play <kbd>space</kbd></button>
+    <span class="sep"></span>
+    <button data-act="back">Back <kbd>b</kbd></button>
     <button data-act="faster">Faster <kbd>l</kbd></button>
+    <button data-act="shade">41 ms <kbd>s</kbd></button>
+    <button data-act="reset">Reset view <kbd>r</kbd></button>
     <button data-act="full">Fullscreen <kbd>f</kbd></button>
     <button data-act="zen">Zen <kbd>z</kbd></button>
-    <button data-act="reset">Reset view <kbd>r</kbd></button>
     <button data-act="help">Help <kbd>?</kbd></button>
   </div>
   <div id="sliders">
     <label for="zoom">neurons shown</label>
-    <input id="zoom" type="range" min="128" max="1000" step="1" value="1000"><output id="zoomOut"></output>
+    <input id="zoom" autocomplete="off" type="range" min="128" max="1000" step="1" value="1000"><output id="zoomOut"></output>
     <label for="first">first neuron</label>
-    <input id="first" type="range" min="0" max="0" step="1" value="0"><output id="firstOut"></output>
+    <input id="first" autocomplete="off" type="range" min="0" max="0" step="1" value="0"><output id="firstOut"></output>
     <label for="span">time window</label>
-    <input id="span" type="range" min="50" max="3000" step="1" value="1000"><output id="spanOut"></output>
+    <input id="span" autocomplete="off" type="range" min="50" max="3000" step="1" value="1000"><output id="spanOut"></output>
     <label for="speed" class="full-only">speed</label>
-    <input id="speed" class="full-only" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut" class="full-only"></output>
+    <input id="speed" autocomplete="off" class="full-only" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut" class="full-only"></output>
   </div>
 </div>
 <button id="zenExit" data-act="zen">exit zen <kbd>z</kbd></button>
@@ -135,11 +158,11 @@
 <div id="help"><div>
   <h2>Keys</h2>
   <dl>
-    <dt>space</dt><dd>pause / play</dd>
+    <dt>space</dt><dd>pause / play (the buttons Pause and Play do each half)</dd>
     <dt>c</dt><dd>chain: red = current spike, coloured = its 41 ms context, blue = predicted spike</dd>
-    <dt>n / b</dt><dd>step forward / back, spike by spike (with the chain: context, prediction, window shift)</dd>
-    <dt>d</dt><dd>delay lines from the context to the predicted spike</dd>
-    <dt>s</dt><dd>shade the last 41 ms before the present</dd>
+    <dt>n / b</dt><dd>next / back, spike by spike (with the chain: context, prediction, window shift)</dd>
+    <dt>d</dt><dd>delay lines from the spikes of the 41 ms window (dashed box) which ends at the predicted spike, to it</dd>
+    <dt>s</dt><dd>shade the last 41 ms before the present (always shown with the chain)</dd>
     <dt>k / l</dt><dd>slower / faster</dd>
     <dt>r</dt><dd>reset the view (1000 neurons, 1 s, speed ×1)</dd>
     <dt>f / z</dt><dd>fullscreen / zen mode</dd>
@@ -149,7 +172,12 @@
   <dl>
     <dt>two-finger scroll</dt><dd>horizontal: move in time (pauses) &middot; vertical: move through the neurons</dd>
     <dt>pinch</dt><dd>zoom the time window (ctrl + wheel)</dd>
-    <dt>option + pinch</dt><dd>zoom the neurons around the pointer (alt + wheel)</dd>
+    <dt>option + pinch</dt><dd>zoom the neurons around the pointer (alt + wheel); a trackpad pinch has no direction</dd>
+  </dl>
+  <h2>Touch screen</h2>
+  <dl>
+    <dt>one finger</dt><dd>drag to move in time and through the neurons</dd>
+    <dt>two fingers</dt><dd>spread horizontally = zoom the time window &middot; spread vertically = zoom the neurons</dd>
   </dl>
   <dd style="margin:0;color:var(--dim)">click anywhere to close</dd>
 </div></div>
@@ -214,6 +242,8 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
 // ---- sliders: vertical zoom, panning, horizontal zoom, speed -----------------
 const zoom = document.getElementById('zoom'), first = document.getElementById('first');
 const span = document.getElementById('span'), speedS = document.getElementById('speed');
@@ -236,8 +266,16 @@ function updateSpeed() {
   document.getElementById('speedOut').textContent = `×${speed.toFixed(2)}`;
 }
 zoom.min = N_MIN;
+zoom.value = N_NEURON;          // all neurons at start, whatever value the browser may restore
+first.value = 0;
 span.value = T_VIEW * 1000;
-zoom.addEventListener('input', () => { updateView(); zoom.blur(); });
+speedS.value = 0;
+zoom.addEventListener('input', () => {   // the slider zooms around the centre of the view
+  const centre = first0 + nShown / 2;
+  updateView();
+  first.value = clamp(Math.round(centre - nShown / 2), 0, N_NEURON - nShown); updateView();
+  zoom.blur();
+});
 first.addEventListener('input', updateView);
 span.addEventListener('input', () => { updateSpan(); span.blur(); });
 speedS.addEventListener('input', () => { updateSpeed(); speedS.blur(); });
@@ -246,7 +284,6 @@ updateView(); updateSpan(); updateSpeed();
 // trackpad and mouse: pinch (or ctrl + wheel) zooms the time window, alt + pinch zooms the neurons
 // around the pointer, two-finger scroll pans in time (horizontal) and through the neurons (vertical);
 // Safari pinch (gesture events) zooms time
-const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 let spanF = +span.value, zoomF = +zoom.value;
 span.addEventListener('input', () => { spanF = +span.value; });
 zoom.addEventListener('input', () => { zoomF = +zoom.value; });
@@ -258,6 +295,7 @@ function zoomNeurons(f, y) {
   zoomF = clamp(zoomF * f, +zoom.min, +zoom.max); zoom.value = zoomF; updateView();
   first.value = clamp(centre - y / H * nShown, 0, N_NEURON - nShown); updateView();
 }
+function panNeurons(rows) { first.value = clamp(first0 + rows, 0, N_NEURON - nShown); updateView(); }
 function panTime(dt) {   // moving in time pauses the animation; the chain follows the present
   paused = true;
   now = ((now + dt) % T_TOTAL + T_TOTAL) % T_TOTAL;
@@ -270,17 +308,49 @@ canvas.addEventListener('wheel', e => {
     const f = Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.003));  // pinch out (deltaY < 0) zooms in
     if (e.altKey) zoomNeurons(f, e.clientY); else zoomTime(f);
   } else {
-    if (e.deltaY) { first.value = clamp(first0 + e.deltaY * nShown / H, 0, N_NEURON - nShown); updateView(); }
+    if (e.deltaY) panNeurons(e.deltaY * nShown / H);
     if (Math.abs(e.deltaX) > 1) panTime(e.deltaX * tView / W);
   }
 }, {passive: false});
+// touch screens and pens (and a mouse drag): one pointer drags the view; with two fingers the horizontal
+// spread zooms the time window and the vertical spread zooms the neurons (a trackpad pinch carries no
+// direction, which is why it needs the option key)
+const ptr = new Map();
+let pinch = null;
+const pair = () => { const [a, b] = [...ptr.values()];
+  return {dx: Math.abs(a.x - b.x), dy: Math.abs(a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2}; };
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  ptr.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  pinch = ptr.size === 2 ? pair() : null;
+});
+canvas.addEventListener('pointermove', e => {
+  const p = ptr.get(e.pointerId);
+  if (!p) return;
+  const ddx = e.clientX - p.x, ddy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptr.size === 1) {
+    if (Math.abs(ddx) > 1) panTime(-ddx * tView / W);
+    panNeurons(-ddy * nShown / H);
+  } else if (ptr.size === 2 && pinch) {
+    const q = pair(), MIN = 30;   // px; an axis with fingers closer than this is ambiguous and is left alone
+    if (pinch.dx > MIN && q.dx > MIN) zoomTime(pinch.dx / q.dx);
+    if (pinch.dy > MIN && q.dy > MIN) zoomNeurons(pinch.dy / q.dy, q.my);
+    if (Math.abs(q.mx - pinch.mx) > 1) panTime(-(q.mx - pinch.mx) * tView / W);
+    panNeurons(-(q.my - pinch.my) * nShown / H);
+    pinch = q;
+  }
+});
+const endPointer = e => { ptr.delete(e.pointerId); pinch = ptr.size === 2 ? pair() : null; };
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
 let g0 = 1;
 canvas.addEventListener('gesturestart', e => { e.preventDefault(); g0 = e.scale; });
 canvas.addEventListener('gesturechange', e => { e.preventDefault(); zoomTime(g0 / e.scale); g0 = e.scale; });
 
 // ---- state ---------------------------------------------------------------------
 let now = 0, paused = false, shade = false, last = performance.now();
-let chainOn = false, delays = true, zen = false;
+let chainOn = false, delays = false, zen = false;   // the delay lines are off until the Delays button / key d
 
 // chain: the context window (spikes of the last T_SHADE up to and including the reference spike `ref`),
 // and the predicted next spike. phase 0: context shown; 1: prediction (blue) shown; 2: window shifted to
@@ -309,14 +379,16 @@ function setRef(r, phase, back = false) {
     for (const s of chain.win) if (!keep.has(s.j)) hueMap.delete(s.j);
   } else if (chain) {
     if (chain.next === r) {
-      trail.push({src: chain.win, tt: chain.nextT, tn: chain.next});
+      trail.push({src: chain.src, tt: chain.nextT, tn: chain.next});
       if (trail.length > N_TRAIL) trail.shift();
     } else trail = [];
     if (r < chain.ref) hueMap.clear();   // wrap-around of the loop
   }
-  const win = contextOf(r), nk = (r + 1) % M;
-  chain = {ref: r, tr: spikes.t[r], win, inWin: new Set(win.map(s => s.j)), next: nk,
-           nextT: spikes.t[nk] + (nk > r ? 0 : T_TOTAL), phase};
+  const win = contextOf(r), nk = (r + 1) % M, nextT = spikes.t[nk] + (nk > r ? 0 : T_TOTAL);
+  // src: the spikes which can predict the next one, i.e. those of the T_SHADE window which ends at it
+  const off = nextT - spikes.t[nk];   // T_TOTAL when the next spike is in the following period
+  const src = contextOf(nk).filter(s => s.j !== nk).map(s => ({j: s.j, t: s.t + off}));
+  chain = {ref: r, tr: spikes.t[r], win, inWin: new Set(win.map(s => s.j)), next: nk, nextT, src, phase};
   if (back) stepN = Math.max(1, stepN - 1); else stepN++;
   const hue = ((stepN - 1) * 137.508) % 360;
   for (const s of win) hueMap.set(s.j, hue);
@@ -354,7 +426,9 @@ function resetView() {
 }
 
 const acts = {
-  pause:  () => { paused = !paused; },
+  toggle: () => { paused = !paused; },
+  pause:  () => { paused = true; },
+  play:   () => { paused = false; },
   shade:  () => { shade = !shade; },
   chain:  () => {
     chainOn = !chainOn;
@@ -374,15 +448,14 @@ const acts = {
   },
   zen:    () => { zen = !zen; document.body.classList.toggle('zen', zen); },
 };
-const keys = {' ': 'pause', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'reset', '?': 'help', h: 'help', d: 'delays', k: 'slower', l: 'faster', f: 'full', z: 'zen'};
+const keys = {' ': 'toggle', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'reset', '?': 'help', h: 'help', d: 'delays', k: 'slower', l: 'faster', f: 'full', z: 'zen'};
 
 const buttons = document.querySelectorAll('button[data-act]');
 function syncButtons() {
-  const on = {pause: paused, shade, chain: chainOn, delays,
+  const on = {pause: paused, play: !paused, shade, chain: chainOn, delays,
               full: !!document.fullscreenElement, zen};
   for (const b of buttons) {
     b.classList.toggle('on', !!on[b.dataset.act]);
-    if (b.dataset.act === 'pause') b.firstChild.textContent = paused ? 'Play ' : 'Pause ';
   }
 }
 document.getElementById('help').addEventListener('click', () => acts.help());
@@ -407,16 +480,20 @@ function draw() {
 
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
 
-  // shaded area: the context window of the chain, or else the last T_SHADE before the present instant
-  if (chainOn && chain) {
-    const tEnd = chain.phase === 2 ? chain.nextT : chain.tr;
-    ctx.globalAlpha = 0.18; ctx.fillStyle = COL.now;
-    for (const shift of SHIFTS) ctx.fillRect(x(tEnd - T_SHADE + shift), 0, x(tEnd + shift) - x(tEnd - T_SHADE + shift), H);
-    ctx.globalAlpha = 1;
-  } else if (shade) {
+  // shaded area: the last T_SHADE before the present instant, always anchored to the present bar
+  // (always shown with the chain, otherwise with the key s)
+  if (shade || chainOn) {
     ctx.globalAlpha = 0.18; ctx.fillStyle = COL.now;
     ctx.fillRect(x(now - T_SHADE), 0, x(now) - x(now - T_SHADE), H);
     ctx.globalAlpha = 1;
+  }
+
+  // prediction (phase 2/3): the window of T_SHADE which ends at the predicted spike, dashed like the boxes
+  // of the figure; only the spikes inside it are connected to the predicted spike
+  if (showNext && chain.phase === 1) {
+    ctx.strokeStyle = COL.now; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    for (const shift of SHIFTS) ctx.strokeRect(x(chain.nextT - T_SHADE + shift), 1, x(chain.nextT + shift) - x(chain.nextT - T_SHADE + shift), H - 2);
+    ctx.setLineDash([]);
   }
 
   // bar of the present instant, behind the spikes like the shaded area
@@ -444,7 +521,7 @@ function draw() {
   }
   if (chainOn && chain && delays) {
     trail.forEach((g, i) => group(g, 0.06 + 0.2 * (i + 1) / trail.length, false));
-    if (showNext) group({src: chain.win, tt: chain.nextT, tn: chain.next}, 0.8, true);
+    if (showNext) group({src: chain.src, tt: chain.nextT, tn: chain.next}, 0.8, true);
   }
 
   // spikes: the present is brighter than the past; the future is faint
