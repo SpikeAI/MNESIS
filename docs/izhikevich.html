@@ -12,20 +12,21 @@
      Page autonome (HTML, CSS et JavaScript dans un seul fichier, aucune dépendance), à ouvrir dans un navigateur.
 
   2. Signal
-     - 1000 neurones, signal de T_TOTAL = 3 s, rejoué en boucle sans coupure au raccord.
-     - Un seul tirage de Poisson à 0,16 Hz par neurone, fait à l'initialisation avec un générateur à graine
+     - 512 neurones, signal de T_TOTAL = 3 s, rejoué en boucle sans coupure au raccord.
+     - Un seul tirage de Poisson à 1 Hz par neurone (activité de fond), fait à l'initialisation avec un générateur à graine
        fixe (mulberry32), discrétisé au pas de 1 ms (DT) sans que deux neurones tirent au même instant (un
        spike dont l'instant est pris passe au pas libre suivant), puis gelé : les trains de spikes sont rejoués à l'identique à chaque période.
        Il n'y a pas de motif inséré. Le tirage aléatoire ne contient donc pas de vrais groupes polychrones.
 
   3. Affichage
-     - Raster plein écran sur un canvas : une ligne horizontale très fine par neurone, un bref trait
-       vertical par spike.
-     - Fenêtre de temps réglable (1 s au départ, de 50 ms à 3 s) qui défile en temps réel. La barre de
+     - Raster plein écran sur un canvas : une ligne horizontale très fine par neurone (autant de lignes que
+       de neurones affichés), un bref trait vertical par spike, posé sur la ligne de son neurone et haut de
+       90 % de la distance entre deux lignes (au moins 1 px quand les lignes sont plus serrées que 1 px).
+     - Fenêtre de temps réglable (au départ, toute la période de 3 s ; de 50 ms à 3 s) qui défile en temps réel. La barre de
        l'instant présent est bleutée, placée à 80 % de la largeur, et dessinée derrière les spikes comme la
        zone ombrée. Le passé s'estompe, le futur est pâle.
-     - Zoom sur les neurones : de 1000 à 128 neurones affichés (128 lignes à 128), avec un curseur
-       « first neuron » pour se déplacer quand on zoome.
+     - Zoom sur les neurones (pas de curseur, uniquement par gestes) : de 512 à 128 neurones affichés
+       (128 lignes à 128), avec défilement vertical pour se déplacer quand on zoome.
      - Spike prédit (phase de prédiction) : dessiné aussi grand qu'un spike qui atteint le présent (élargi,
        allongé, avec un halo), en bleu.
      - Visibilité : spikes larges et clairs ; le spike qui atteint le présent « flashe » pendant 150 ms
@@ -41,24 +42,28 @@
        dernière étape où il était dans le contexte. Désactiver la chaîne remet toutes les couleurs à zéro.
      - Mode dynamique (lecture, éventuellement ralentie) : le contexte coloré saute de spike en spike quand le
        présent atteint le suivant ; la zone ombrée suit le présent sans saut.
-     - Pas à pas (Next = n, retour avec b), en pause : cycle de 3 pressions sur un spike : 1. contexte coloré ;
-       2. prédiction en bleu ; 3. décalage de la fenêtre sur le spike prédit, qui devient la nouvelle
-       référence. Sans la chaîne, n et b sautent au spike suivant ou précédent.
-     - Délais (touche d, désactivés au départ) : une ligne relie au spike prédit uniquement les spikes de la
-       fenêtre de 41 ms qui se termine sur lui (cadre en pointillés pendant la prédiction, qui devient la zone
-       ombrée à l'étape suivante) ; les délais sont donc tous inférieurs à 41 ms, avec le délai en ms
-       (comme les trajectoires du panneau droit de la figure) ; les prédictions précédentes restent estompées.
+     - Explication d'une prédiction (touche d, en pause avec la chaîne), en 3 appuis : 1. le spike suivant est
+       mis en évidence (bleu, grand) avec le cadre en pointillés de la fenêtre de 41 ms qui se termine sur
+       lui et tous les spikes qu'il contient ; 2. les délais sont affichés : une ligne relie chaque spike du
+       cadre au spike suivant, avec le délai en ms (tous inférieurs à 41 ms ; comme les trajectoires du
+       panneau droit de la figure) ; 3. ces délais suffisent à prédire le spike suivant : la fenêtre de
+       contexte se déplace sur lui, qui devient la nouvelle référence (couleur forte). Seuls les délais du spike
+       courant sont montrés (pas ceux des prédictions précédentes). Pendant la lecture, d affiche ou masque les lignes de
+       délai (masquées au départ).
+     - Pas à pas (Next = n, retour avec b) : n déplace la fenêtre de contexte sur le spike suivant dans le
+       temps (rebouclage à 3 s) ; b revient d'une phase de l'explication, puis au spike précédent. Sans la
+       chaîne, n et b sautent au spike suivant ou précédent.
 
   5. Commandes (chacune a un bouton, la touche est affichée sur le bouton ; ? ou h ouvre l'aide)
      Pause : l'animation ne s'arrête pas n'importe où, elle continue jusqu'au spike suivant le plus proche et
      s'arrête exactement à son instant (un second appui annule la demande) ; avec la chaîne, la séquence
      repart alors du contexte de ce spike.
-     Les boutons du haut suivent la séquence de la présentation : 1 Slower (ralentir), 2 Pause, Chain,
-     Delays, 3 Next (spike suivant, touche n), 4 Play ; viennent ensuite Back et les réglages. Les boutons
+     L'ordre des boutons du haut suit la séquence de la présentation (sans numéros affichés) : Slower
+     (ralentir), Pause, Chain, Delays, Next (spike suivant, touche n), Play ; viennent ensuite Back et les réglages. Les boutons
      Pause et Play font chacun une moitié de la bascule de la barre d'espace.
      espace pause/lecture · s zone de 41 ms · c chaîne · n / b spike suivant / précédent (Next / Back) · d délais ·
-     k / l plus lent / plus rapide (curseur « speed », ×0,02 à ×1) · r réinitialiser la vue ·
-     f plein écran · z mode zen (interface minimale : il ne reste que les curseurs de zoom, discrets) ·
+     k / l plus lent / plus rapide (curseur « speed », ×0,02 à ×1) · r réinitialiser la vue et les couleurs de la chaîne (la chaîne reste active, repart du présent) ·
+     f plein écran · z mode zen (interface minimale : il ne reste que le curseur de la fenêtre de temps, discret) ·
      ? ou h aide à l'écran.
      Les touches lisent le caractère tapé (e.key) et non la touche physique, pour fonctionner sur un clavier
      AZERTY. Esc n'est pas utilisé : il sert à sortir du plein écran.
@@ -72,11 +77,11 @@
      - Écran tactile ou stylet : un doigt déplace la vue (temps et neurones, glisser avec la souris fait de
        même) ; avec deux doigts, l'écart horizontal zoome le temps et l'écart vertical zoome les neurones
        (un axe dont les doigts sont à moins de 30 px est ignoré).
-     - Le curseur « neurons shown » zoome autour du centre de la vue ; au chargement, tous les neurones sont
-       affichés, quelle que soit la valeur que le navigateur pourrait restaurer.
+     - Il n'y a plus de curseurs « neurons shown » ni « first neuron » ; au chargement, tous les neurones sont
+       affichés et les curseurs restants sont remis à leur valeur de départ.
 
   7. Paramètres (constantes en tête du script)
-     N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH, N_TRAIL.
+     N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH.
 
   8. Hors périmètre / à venir
      Reproduire les deux motifs de la figure (8 neurones, délais 3, 8, 4, 2 ms et 1, 6, 2, 8 ms) au lieu du
@@ -86,7 +91,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Izhikevich raster</title>
 <style>
-  :root { --bg: #0b0d12; --fg: #e8e8ea; --spike: #e6e9f0; --now: #ff9f1c; --dim: #8a90a0; --line: #2a2f3a;
+  :root { --bg: #0b0d12; --fg: #e8e8ea; --spike: #e6e9f0; --now: #ff9f1c; --dim: #8a90a0; --line: #3a4252;
           --present: #4dabf7; --next: #2f6bff; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
                font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace; }
@@ -99,7 +104,6 @@
   #btns button:hover, #zenExit:hover { border-color: var(--dim); }
   #btns button.on { background: color-mix(in srgb, var(--now) 25%, transparent); border-color: var(--now); }
   #btns { align-items: center; }
-  #btns .num { color: var(--now); font-weight: bold; margin-left: 4px; }
   #btns .sep { flex-basis: 100%; height: 0; }
   #btns kbd { font: inherit; color: var(--dim); margin-left: 4px; }
   #sliders { display: grid; grid-template-columns: auto 180px auto; gap: 4px 10px; align-items: center; }
@@ -116,7 +120,7 @@
   #help dt { color: var(--now); } #help dd { margin: 0; color: var(--dim); }
   #zenExit { position: fixed; right: 12px; top: 10px; display: none; opacity: .25; }
   #zenExit:hover { opacity: 1; }
-  /* zen mode: only the zoom sliders remain, faint until hovered */
+  /* zen mode: only the time window slider remains, faint until hovered */
   body.zen #btns, body.zen #hud, body.zen .full-only { display: none; }
   body.zen #ui { opacity: .25; }
   body.zen #ui:hover { opacity: 1; }
@@ -128,16 +132,12 @@
 <div id="ui">
   <div id="btns">
     <!-- the first buttons follow the sequence of the talk: 1 slow down, 2 pause and show a chain with its delays,
-         3 step to the next spikes, 4 play again -->
-    <span class="num">1</span>
+         3 step to the next spikes, 4 play again (the order of the buttons; no numbers on screen) -->
     <button data-act="slower">Slower <kbd>k</kbd></button>
-    <span class="num">2</span>
     <button data-act="pause">Pause <kbd>space</kbd></button>
     <button data-act="chain">Chain <kbd>c</kbd></button>
     <button data-act="delays">Delays <kbd>d</kbd></button>
-    <span class="num">3</span>
     <button data-act="step">Next <kbd>n</kbd></button>
-    <span class="num">4</span>
     <button data-act="play">Play <kbd>space</kbd></button>
     <span class="sep"></span>
     <button data-act="back">Back <kbd>b</kbd></button>
@@ -149,12 +149,8 @@
     <button data-act="help">Help <kbd>?</kbd></button>
   </div>
   <div id="sliders">
-    <label for="zoom">neurons shown</label>
-    <input id="zoom" autocomplete="off" type="range" min="128" max="1000" step="1" value="1000"><output id="zoomOut"></output>
-    <label for="first">first neuron</label>
-    <input id="first" autocomplete="off" type="range" min="0" max="0" step="1" value="0"><output id="firstOut"></output>
     <label for="span">time window</label>
-    <input id="span" autocomplete="off" type="range" min="50" max="3000" step="1" value="1000"><output id="spanOut"></output>
+    <input id="span" autocomplete="off" type="range" min="50" max="3000" step="1" value="3000"><output id="spanOut"></output>
     <label for="speed" class="full-only">speed</label>
     <input id="speed" autocomplete="off" class="full-only" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut" class="full-only"></output>
   </div>
@@ -165,12 +161,12 @@
   <h2>Keys</h2>
   <dl>
     <dt>space</dt><dd>pause / play: a pause waits for the closest next spike and stops on it (press again to cancel); the buttons Pause and Play do each half</dd>
-    <dt>c</dt><dd>chain: red = current spike, coloured = its 41 ms context, blue = predicted spike</dd>
-    <dt>n / b</dt><dd>next / back, spike by spike (with the chain: context, prediction, window shift)</dd>
-    <dt>d</dt><dd>delay lines from the spikes of the 41 ms window (dashed box) which ends at the predicted spike, to it</dd>
+    <dt>c</dt><dd>chain: the current spike and its 41 ms context window in colour; the next spike is blue</dd>
+    <dt>n / b</dt><dd>next / back, spike by spike (with the chain, the context window moves onto the next spike)</dd>
+    <dt>d</dt><dd>with the chain, paused: explains one prediction in 3 presses &mdash; (1) the next spike and the dashed box of the 41 ms before it, (2) the delays from the spikes of the box to it, (3) the context window moves onto it. While playing: show / hide the delay lines</dd>
     <dt>s</dt><dd>shade the last 41 ms before the present (always shown with the chain)</dd>
     <dt>k / l</dt><dd>slower / faster</dd>
-    <dt>r</dt><dd>reset the view (1000 neurons, 1 s, speed ×1)</dd>
+    <dt>r</dt><dd>reset the view (all neurons, the 3 s period, speed ×1) and the colours of the chain</dd>
     <dt>f / z</dt><dd>fullscreen / zen mode</dd>
     <dt>? or h</dt><dd>this help</dd>
   </dl>
@@ -190,15 +186,14 @@
 
 <script>
 // ---- parameters ------------------------------------------------------------
-const N_NEURON = 1000;     // neurons
+const N_NEURON = 512;      // neurons
 const T_TOTAL  = 3.0;      // s, duration of the signal (looped)
-const T_VIEW   = 1.0;      // s, duration shown on screen at start (horizontal zoom slider)
+const T_VIEW   = T_TOTAL;  // s, duration shown on screen at start: the whole period (horizontal zoom slider)
 const NOW_FRAC = 0.8;      // position of the present instant in the window
-const RATE     = 0.16;     // Hz, mean rate of each neuron
+const RATE     = 1;        // Hz, background firing rate of each neuron
 const N_MIN    = 128;      // fewest neurons shown when zoomed in
 const T_SHADE  = 0.041;    // s, duration of the context window
 const FLASH    = 0.15;     // s, duration of the flash of a spike reaching the present
-const N_TRAIL  = 8;        // number of previous predictions kept (faint) with the delay lines
 const DT       = 0.001;    // s, time step: spike times are multiples of it, and at most one neuron fires at each step
 const SHIFTS   = [-T_TOTAL, 0, T_TOTAL];   // wrap-around of the loop
 
@@ -260,18 +255,13 @@ resize();
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-// ---- sliders: vertical zoom, panning, horizontal zoom, speed -----------------
-const zoom = document.getElementById('zoom'), first = document.getElementById('first');
+// ---- view: horizontal zoom and speed sliders; the neurons are zoomed and panned by gestures only -------------
 const span = document.getElementById('span'), speedS = document.getElementById('speed');
+let nF = N_NEURON, firstF = 0;                    // zoom and position on the neurons (floats, rounded below)
 let nShown = N_NEURON, first0 = 0, tView = T_VIEW, speed = 1;
 function updateView() {
-  nShown = +zoom.value;
-  first.max = N_NEURON - nShown;
-  first0 = Math.min(+first.value, N_NEURON - nShown);
-  first.value = first0;
-  first.disabled = nShown === N_NEURON;
-  document.getElementById('zoomOut').textContent = nShown;
-  document.getElementById('firstOut').textContent = first0;
+  nF = clamp(nF, N_MIN, N_NEURON); nShown = Math.round(nF);
+  firstF = clamp(firstF, 0, N_NEURON - nShown); first0 = Math.round(firstF);
 }
 function updateSpan() {
   tView = +span.value / 1000;
@@ -281,18 +271,8 @@ function updateSpeed() {
   speed = Math.pow(10, +speedS.value);
   document.getElementById('speedOut').textContent = `×${speed.toFixed(2)}`;
 }
-zoom.min = N_MIN;
-zoom.value = N_NEURON;          // all neurons at start, whatever value the browser may restore
-first.value = 0;
-span.value = T_VIEW * 1000;
+span.value = T_VIEW * 1000;     // initial values, whatever the browser may restore
 speedS.value = 0;
-zoom.addEventListener('input', () => {   // the slider zooms around the centre of the view
-  const centre = first0 + nShown / 2;
-  updateView();
-  first.value = clamp(Math.round(centre - nShown / 2), 0, N_NEURON - nShown); updateView();
-  zoom.blur();
-});
-first.addEventListener('input', updateView);
 span.addEventListener('input', () => { updateSpan(); span.blur(); });
 speedS.addEventListener('input', () => { updateSpeed(); speedS.blur(); });
 updateView(); updateSpan(); updateSpeed();
@@ -300,18 +280,17 @@ updateView(); updateSpan(); updateSpeed();
 // trackpad and mouse: pinch (or ctrl + wheel) zooms the time window, alt + pinch zooms the neurons
 // around the pointer, two-finger scroll pans in time (horizontal) and through the neurons (vertical);
 // Safari pinch (gesture events) zooms time
-let spanF = +span.value, zoomF = +zoom.value;
+let spanF = +span.value;
 span.addEventListener('input', () => { spanF = +span.value; });
-zoom.addEventListener('input', () => { zoomF = +zoom.value; });
 function zoomTime(f) {
   spanF = clamp(spanF * f, +span.min, +span.max); span.value = spanF; updateSpan();
 }
 function zoomNeurons(f, y) {
   const centre = first0 + y / H * nShown;                       // neuron under the pointer
-  zoomF = clamp(zoomF * f, +zoom.min, +zoom.max); zoom.value = zoomF; updateView();
-  first.value = clamp(centre - y / H * nShown, 0, N_NEURON - nShown); updateView();
+  nF *= f; updateView();
+  firstF = centre - y / H * nShown; updateView();
 }
-function panNeurons(rows) { first.value = clamp(first0 + rows, 0, N_NEURON - nShown); updateView(); }
+function panNeurons(rows) { firstF = first0 + rows; updateView(); }
 function panTime(dt) {   // moving in time pauses the animation; the chain follows the present
   paused = true; pausing = false;
   now = ((now + dt) % T_TOTAL + T_TOTAL) % T_TOTAL;
@@ -366,14 +345,14 @@ canvas.addEventListener('gesturechange', e => { e.preventDefault(); zoomTime(g0 
 
 // ---- state ---------------------------------------------------------------------
 let now = 0, paused = false, pausing = false, pauseAt = 0, shade = false, last = performance.now();
-let chainOn = false, delays = false, zen = false;   // the delay lines are off until the Delays button / key d
+let chainOn = false, delays = false, zen = false;   // delays: the delay lines while playing, off until the Delays button / key d
 
 // chain: the context window (spikes of the last T_SHADE up to and including the reference spike `ref`),
-// and the predicted next spike. phase 0: context shown; 1: prediction (blue) shown; 2: window shifted to
-// the prediction, which is not yet coloured as the new reference.
+// and the predicted next spike. phase 0: context shown; 1: the next spike (blue) and the dashed box of the
+// window which ends at it; 2: the delay lines from the spikes of this box to the next spike. A further
+// step moves the context window onto the next spike, which becomes the new reference (phase 0).
 let chain = null;
 const hueMap = new Map();                // per-spike colours: spike index -> hue of the step which last had it in its context
-let trail = [];                          // previous predictions, kept faint: {src: [{j, t}], tt, tn}
 let stepN = 0;
 
 function contextOf(r) {
@@ -390,14 +369,9 @@ function contextOf(r) {
 
 function setRef(r, phase, back = false) {
   if (back) {
-    trail.pop();
     const keep = new Set(contextOf(r).map(s => s.j));
     for (const s of chain.win) if (!keep.has(s.j)) hueMap.delete(s.j);
   } else if (chain) {
-    if (chain.next === r) {
-      trail.push({src: chain.src, tt: chain.nextT, tn: chain.next});
-      if (trail.length > N_TRAIL) trail.shift();
-    } else trail = [];
     if (r < chain.ref) hueMap.clear();   // wrap-around of the loop
   }
   const win = contextOf(r), nk = (r + 1) % M, nextT = spikes.t[nk] + (nk > r ? 0 : T_TOTAL);
@@ -410,7 +384,7 @@ function setRef(r, phase, back = false) {
   for (const s of win) hueMap.set(s.j, hue);
 }
 
-function chainOff() { chain = null; hueMap.clear(); trail = []; stepN = 0; }
+function chainOff() { chain = null; hueMap.clear(); stepN = 0; }
 
 // ---- actions (keys and buttons) ------------------------------------------------
 function step() {
@@ -419,9 +393,7 @@ function step() {
     let k = lowerBound(now + 1e-6);
     if (k >= M) k = 0;
     now = spikes.t[k];
-  } else if (chain.phase === 0) chain.phase = 1;            // show the prediction
-  else if (chain.phase === 1) { chain.phase = 2; now = spikes.t[chain.next]; }   // shift the window
-  else { const r = chain.next; setRef(r, 0); now = spikes.t[r]; }               // colour the new context
+  } else { const r = chain.next; setRef(r, 0); now = spikes.t[r]; }   // the context window moves onto the next spike
 }
 
 function stepBack() {
@@ -430,15 +402,25 @@ function stepBack() {
     let k = lowerBound(now - 1e-6) - 1;
     if (k < 0) k = M - 1;
     now = spikes.t[k];
-  } else if (chain.phase === 2) { chain.phase = 1; now = chain.tr; }
-  else if (chain.phase === 1) chain.phase = 0;
-  else { setRef((chain.ref + M - 1) % M, 2, true); now = spikes.t[chain.next]; }
+  } else if (chain.phase > 0) chain.phase--;
+  else { const r = (chain.ref + M - 1) % M; setRef(r, 0, true); now = spikes.t[r]; }
+}
+
+// d, paused with the chain on: explains one prediction in three presses
+//   1. the next spike is highlighted, with the dashed box of the 41 ms window which ends at it
+//   2. the delays from the spikes of this box to the next spike are shown
+//   3. these delays are enough to predict the next spike: the context window moves onto it
+function explain() {
+  if (chain.phase < 2) chain.phase++;
+  else { const r = chain.next; setRef(r, 0); now = spikes.t[r]; }
 }
 
 function resetView() {
-  zoom.value = zoomF = N_NEURON; first.value = 0; updateView();
+  nF = N_NEURON; firstF = 0; updateView();
   span.value = spanF = T_VIEW * 1000; updateSpan();
   speedS.value = 0; updateSpeed();
+  chainOff();   // the colours too: the hues are cleared
+  if (chainOn) setRef(latestIndex(now), paused ? 0 : 1);   // the chain stays active, restarting from the present
 }
 
 const acts = {
@@ -460,7 +442,10 @@ const acts = {
   },
   step, back: stepBack, reset: resetView,
   help:   () => document.getElementById('help').classList.toggle('open'),
-  delays: () => { delays = !delays; },
+  delays: () => {   // paused: the explanation of one prediction, step by step; playing: shows or hides the delay lines
+    if (!chainOn) return;
+    if (paused) explain(); else delays = !delays;
+  },
   slower: () => { speedS.value = Math.max(+speedS.min, +speedS.value - 0.15); updateSpeed(); },
   faster: () => { speedS.value = Math.min(+speedS.max, +speedS.value + 0.15); updateSpeed(); },
   full:   () => {
@@ -473,7 +458,7 @@ const keys = {' ': 'toggle', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'r
 
 const buttons = document.querySelectorAll('button[data-act]');
 function syncButtons() {
-  const on = {pause: paused || pausing, play: !paused && !pausing, shade, chain: chainOn, delays,
+  const on = {pause: paused || pausing, play: !paused && !pausing, shade, chain: chainOn, delays: !!chain && chainOn && (paused ? chain.phase === 2 : delays),
               full: !!document.fullscreenElement, zen};
   for (const b of buttons) {
     b.classList.toggle('on', !!on[b.dataset.act]);
@@ -509,9 +494,9 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 
-  // prediction (phase 2/3): the window of T_SHADE which ends at the predicted spike, dashed like the boxes
-  // of the figure; only the spikes inside it are connected to the predicted spike
-  if (showNext && chain.phase === 1) {
+  // prediction: the window of T_SHADE which ends at the predicted spike, dashed like the boxes of the
+  // figure; only the spikes inside it are connected to the predicted spike
+  if (showNext) {
     ctx.strokeStyle = COL.now; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
     for (const shift of SHIFTS) ctx.strokeRect(x(chain.nextT - T_SHADE + shift), 1, x(chain.nextT + shift) - x(chain.nextT - T_SHADE + shift), H - 2);
     ctx.setLineDash([]);
@@ -521,7 +506,7 @@ function draw() {
   ctx.fillStyle = COL.present; ctx.fillRect(x(now) - 1, 0, 2, H);
 
   // one very thin line per neuron
-  ctx.strokeStyle = COL.line; ctx.lineWidth = 0.5; ctx.beginPath();
+  ctx.strokeStyle = COL.line; ctx.lineWidth = rowH >= 3 ? 1 : 0.5; ctx.beginPath();
   for (let i = 0; i < nShown; i++) { const y = (i + 0.5) * rowH; ctx.moveTo(0, y); ctx.lineTo(W, y); }
   ctx.stroke();
 
@@ -540,13 +525,12 @@ function draw() {
     }
     ctx.globalAlpha = 1;
   }
-  if (chainOn && chain && delays) {
-    trail.forEach((g, i) => group(g, 0.06 + 0.2 * (i + 1) / trail.length, false));
+  if (chainOn && chain && (chain.phase === 2 || (!paused && delays))) {
     if (showNext) group({src: chain.src, tt: chain.nextT, tn: chain.next}, 0.8, true);
   }
 
   // spikes: the present is brighter than the past; the future is faint
-  const tick = rowH >= 8 ? 0.8 * rowH : Math.max(8, 2 * rowH);   // height of the tick of a spike
+  const tick = Math.max(1, 0.9 * rowH);   // a spike sits on the line of its neuron, 90% of the distance between two lines high
   for (const shift of SHIFTS) {
     const a = lowerBound(t0 - shift), b = lowerBound(t1 - shift);
     for (let k = a; k < b; k++) {
@@ -576,7 +560,7 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  const info = chainOn && chain ? `   ·   chain: step ${stepN}, phase ${chain.phase + 1}/3` : '';
+  const info = chainOn && chain ? `   ·   chain: step ${stepN}, ${['context', 'next spike', 'delays'][chain.phase]}` : '';
   hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   neurons ${first0}–${first0 + nShown - 1} of ${N_NEURON}   ·   ×${speed.toFixed(2)}${info}`;
 }
 
