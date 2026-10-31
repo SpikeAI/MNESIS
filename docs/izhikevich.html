@@ -1,93 +1,165 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!--
-  CAHIER DES CHARGES : izhikevich.html
-
-  1. But
-     Reprendre de façon dynamique la figure tex/figure_izhikevich.tex (« Working memory as a chained
-     sequential spike prediction via heterogeneous delays ») : un raster plot animé où l'on rejoue à la main
-     le mécanisme de la figure. Une fenêtre de contexte de 41 ms prédit le spike suivant, qui entre dans la
-     fenêtre suivante, et ainsi de suite (mémoire de travail comme chaîne de groupes polychrones).
-     Page autonome (HTML, CSS et JavaScript dans un seul fichier, aucune dépendance), à ouvrir dans un navigateur.
-
-  2. Signal
-     - 512 neurones, signal de T_TOTAL = 3 s, rejoué en boucle sans coupure au raccord.
-     - Un seul tirage de Poisson à 1 Hz par neurone (activité de fond), fait à l'initialisation avec un générateur à graine
-       fixe (mulberry32), discrétisé au pas de 1 ms (DT) sans que deux neurones tirent au même instant (un
-       spike dont l'instant est pris passe au pas libre suivant), puis gelé : les trains de spikes sont rejoués à l'identique à chaque période.
-       Il n'y a pas de motif inséré. Le tirage aléatoire ne contient donc pas de vrais groupes polychrones.
-
-  3. Affichage
-     - Raster plein écran sur un canvas : une ligne horizontale très fine par neurone (autant de lignes que
-       de neurones affichés), un bref trait vertical par spike, posé sur la ligne de son neurone et haut de
-       90 % de la distance entre deux lignes (au moins 1 px quand les lignes sont plus serrées que 1 px).
-     - Fenêtre de temps réglable (au départ, toute la période de 3 s ; de 50 ms à 3 s) qui défile en temps réel. La barre de
-       l'instant présent est bleutée, placée à 80 % de la largeur, et dessinée derrière les spikes comme la
-       zone ombrée. Le passé s'estompe, le futur est pâle.
-     - Zoom sur les neurones (pas de curseur, uniquement par gestes) : de 512 à 128 neurones affichés
-       (128 lignes à 128), avec défilement vertical pour se déplacer quand on zoome.
-     - Spike prédit (phase de prédiction) : dessiné aussi grand qu'un spike qui atteint le présent (élargi,
-       allongé, avec un halo), en bleu.
-     - Visibilité : spikes larges et clairs ; le spike qui atteint le présent « flashe » pendant 150 ms
-       (blanc, halo bleu, élargi).
-     - Zone ombrée (touche s, toujours affichée avec la chaîne) : les 41 ms qui précèdent le présent. Elle est
-       toujours ancrée à la barre du présent et la suit.
-
-  4. Mode chaîne (touche c) : simulation du mécanisme de la figure
-     - L'activer sélectionne le spike le plus récent avant le présent : il est la référence (couleur forte).
-       Les spikes des 41 ms qui le précèdent forment son contexte, de la même teinte ; en pas à pas, le présent s'aligne sur lui
-       et la zone ombrée, toujours ancrée au présent, le suit. Le spike suivant dans le temps (rebouclage à 3 s) est la prédiction, en bleu.
-     - Une teinte par étape (angle d'or de 137,5°). Un spike qui sort de la fenêtre garde la teinte de la
-       dernière étape où il était dans le contexte. Désactiver la chaîne remet toutes les couleurs à zéro.
-     - Mode dynamique (lecture, éventuellement ralentie) : le contexte coloré saute de spike en spike quand le
-       présent atteint le suivant ; la zone ombrée suit le présent sans saut.
-     - Explication d'une prédiction (touche d, en pause avec la chaîne), en 3 appuis : 1. le spike suivant est
-       mis en évidence (bleu, grand) avec le cadre en pointillés de la fenêtre de 41 ms qui se termine sur
-       lui et tous les spikes qu'il contient ; 2. les délais sont affichés : une ligne relie chaque spike du
-       cadre au spike suivant, avec le délai en ms (tous inférieurs à 41 ms ; comme les trajectoires du
-       panneau droit de la figure) ; 3. ces délais suffisent à prédire le spike suivant : la fenêtre de
-       contexte se déplace sur lui, qui devient la nouvelle référence (couleur forte). Seuls les délais du spike
-       courant sont montrés (pas ceux des prédictions précédentes). Pendant la lecture, d affiche ou masque les lignes de
-       délai (masquées au départ).
-     - Pas à pas (Next = n, retour avec b) : n déplace la fenêtre de contexte sur le spike suivant dans le
-       temps (rebouclage à 3 s) ; b revient d'une phase de l'explication, puis au spike précédent. Sans la
-       chaîne, n et b sautent au spike suivant ou précédent.
-
-  5. Commandes (chacune a un bouton, la touche est affichée sur le bouton ; ? ou h ouvre l'aide)
-     Pause : l'animation ne s'arrête pas n'importe où, elle continue jusqu'au spike suivant le plus proche et
-     s'arrête exactement à son instant (un second appui annule la demande) ; avec la chaîne, la séquence
-     repart alors du contexte de ce spike.
-     L'ordre des boutons du haut suit la séquence de la présentation (sans numéros affichés) : Slower
-     (ralentir), Pause, Chain, Delays, Next (spike suivant, touche n), Play ; viennent ensuite Back et les réglages. Les boutons
-     Pause et Play font chacun une moitié de la bascule de la barre d'espace.
-     espace pause/lecture · s zone de 41 ms · c chaîne · n / b spike suivant / précédent (Next / Back) · d délais ·
-     k / l plus lent / plus rapide (curseur « speed », ×0,02 à ×1) · r réinitialiser la vue et les couleurs de la chaîne (la chaîne reste active, repart du présent) ·
-     f plein écran · z mode zen (interface minimale : il ne reste que le curseur de la fenêtre de temps, discret) ·
-     ? ou h aide à l'écran.
-     Les touches lisent le caractère tapé (e.key) et non la touche physique, pour fonctionner sur un clavier
-     AZERTY. Esc n'est pas utilisé : il sert à sortir du plein écran.
-
-  6. Trackpad et souris
-     - Défilement à deux doigts : vertical = déplacement dans les neurones ; horizontal = déplacement dans le
-       temps (met en pause ; la chaîne suit).
-     - Pincement (ou ctrl + molette) = zoom du temps ; Option + pincement (ou alt + molette) = zoom des
-       neurones autour du pointeur ; pincement sous Safari = zoom du temps. Un pincement de trackpad ne donne
-       aucune direction au navigateur, d'où la touche Option.
-     - Écran tactile ou stylet : un doigt déplace la vue (temps et neurones, glisser avec la souris fait de
-       même) ; avec deux doigts, l'écart horizontal zoome le temps et l'écart vertical zoome les neurones
-       (un axe dont les doigts sont à moins de 30 px est ignoré).
-     - Il n'y a plus de curseurs « neurons shown » ni « first neuron » ; au chargement, tous les neurones sont
-       affichés et les curseurs restants sont remis à leur valeur de départ.
-
-  7. Paramètres (constantes en tête du script)
-     N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH.
-
-  8. Hors périmètre / à venir
-     Reproduire les deux motifs de la figure (8 neurones, délais 3, 8, 4, 2 ms et 1, 6, 2, 8 ms) au lieu du
-     tirage aléatoire ; export de l'image en PNG ; durée du contexte réglable.
--->
 <meta charset="utf-8">
+<!--
+====================================================================================================
+ CAHIER DES CHARGES : docs/izhikevich.html
+====================================================================================================
+
+ 1. BUT ET PRINCIPE
+====================================================================================================
+  Reprendre de façon dynamique la figure tex/figure_izhikevich.tex (« Working memory as a chained
+  sequential spike prediction via heterogeneous delays ») : un raster plot animé où l'on rejoue à la
+  main le mécanisme de la figure. Une fenêtre de contexte de 41 ms prédit le spike suivant, qui
+  entre à son tour dans la fenêtre suivante, et ainsi de suite : une mémoire de travail comme chaîne
+  de groupes polychrones.
+
+  Page autonome (HTML, CSS et JavaScript dans un seul fichier, sans dépendance), à ouvrir dans un
+  navigateur.
+
+  Correspondance entre la figure et la page :
+  - spikes d'entrée de la fenêtre de contexte  ->  spikes colorés de la zone ombrée (41 ms)
+  - cadre en pointillés d'une étape            ->  cadre en pointillés jusqu'au spike prédit
+  - trajectoires d'un spike vers sa cible      ->  lignes de délai, avec le délai en ms
+  - spike de sortie qui rentre dans la fenêtre ->  spike prédit (bleu), puis nouvelle référence
+
+ 2. SIGNAL
+====================================================================================================
+  - 512 neurones, un signal de T_TOTAL = 3 s, rejoué en boucle sans coupure au raccord.
+  - Un seul tirage de Poisson à 1 Hz par neurone (activité de fond), fait à l'initialisation avec un
+    générateur à graine fixe (mulberry32), puis gelé : les trains de spikes sont rejoués à
+    l'identique à chaque période.
+  - Les temps sont discrétisés au pas de 1 ms (DT) et deux neurones ne tirent jamais au même
+    instant : un spike dont le pas est déjà pris passe au pas libre suivant.
+  - Il n'y a pas de motif inséré, mais le tirage aléatoire gelé peut se comprendre comme un
+    enchaînement de groupes polychrones imbriqués.
+
+ 3. AFFICHAGE
+====================================================================================================
+  Raster plein écran sur un canvas.
+  - Neurones : une ligne horizontale très fine par neurone affiché. Un spike est un bref trait
+    vertical posé sur la ligne de son neurone, haut de 90 % de la distance entre deux lignes (au
+    moins 1 px quand les lignes sont plus serrées que 1 px).
+  - Axe du temps : fenêtre réglable de 50 ms à 3 s (au départ, toute la période de 3 s), qui défile
+    en temps réel. Le passé s'estompe, le futur est progressivement plus pâle.
+  - Présent : une barre bleutée à 80 % de la largeur, dessinée derrière les spikes.
+  - Zone ombrée : les 41 ms qui précèdent le présent. Elle est toujours ancrée à la barre du présent
+    et la suit de façon continue, sans saccade. Affichée avec la touche s, toujours avec la chaîne
+    et en mode zen.
+  - Visibilité : spikes larges et clairs ; un spike qui atteint le présent « flashe » pendant 150 ms
+    (blanc, halo bleu, élargi ; un spike déjà coloré par la chaîne garde sa teinte).
+  - Zoom des neurones, uniquement par gestes (voir 6) : de 512 à 128 neurones affichés, avec
+    défilement vertical pour se déplacer quand on zoome.
+  - Indicateurs : deux curseurs (fenêtre de temps ; vitesse, voir 4), un texte d'état en bas à
+    gauche (instant, neurones affichés, vitesse, étape et phase de la chaîne) et une aide à l'écran
+    (? ou h ; un clic la ferme).
+
+ 4. TEMPS ET LECTURE
+====================================================================================================
+  - Vitesse : de ×0,02 à ×1 (échelle logarithmique ; ×1 = temps biologique réel), par les touches
+    k / l ou le curseur « speed ».
+  - Pause : l'animation ne s'arrête pas n'importe où. Elle continue jusqu'au spike suivant le plus
+    proche et s'arrête exactement à son instant. Un second appui sur espace annule la demande ; Play
+    reprend. Avec la chaîne, la séquence repart alors du contexte de ce spike.
+    Pendant l'attente, le texte d'état affiche « pausing… ».
+  - Pas à pas, qui met en pause tout de suite : n va au spike suivant, b au spike précédent (avec la
+    chaîne, voir 5), avec rebouclage à 3 s.
+  - Déplacement horizontal (défilement, glissement) : met aussi en pause tout de suite ; la chaîne
+    suit.
+
+ 5. MODE CHAÎNE (touche c)
+====================================================================================================
+  Simulation du mécanisme de la figure.
+
+  Activation
+  - Elle sélectionne le spike le plus récent avant le présent : c'est la référence (couleur forte :
+    la teinte de l'étape, en plus claire et plus saturée que celle de son contexte).
+  - Les spikes des 41 ms qui le précèdent forment son contexte, de la même teinte.
+  - Le spike suivant dans le temps (rebouclage à 3 s) est la prédiction. Il n'est pas montré à
+    l'activation : il apparaît au premier appui sur d (voir plus bas) et en mode dynamique, en bleu,
+    dessiné aussi grand qu'un spike qui atteint le présent (élargi, allongé, avec un halo).
+
+  Couleurs
+  - Une teinte par étape, choisie par l'angle d'or (137,5°).
+  - Un spike qui sort de la fenêtre garde la teinte de la dernière étape où il était dans le
+    contexte.
+  - Désactiver la chaîne (ou réinitialiser avec r) remet toutes les couleurs à zéro.
+  - Elles sont aussi remises à zéro au rebouclage de 3 s à 0 s et quand on remonte le temps
+    (défilement ou glissement vers le passé). b, lui, défait seulement l'étape qu'il annule.
+
+  Explication d'une prédiction (touche d, en pause avec la chaîne), en 3 appuis
+  1. Le spike suivant est mis en évidence, avec le cadre en pointillés de la fenêtre de 41 ms qui se
+     termine sur lui et tous les spikes qu'il contient.
+  2. Les délais sont affichés : une ligne relie chaque spike du cadre au spike suivant, avec son
+     délai en ms (tous inférieurs à 41 ms), comme les trajectoires du panneau de droite de la
+     figure. Seuls les délais de la prédiction en cours sont montrés.
+  3. Ces délais suffisent à prédire le spike suivant : la fenêtre de contexte se déplace sur lui,
+     qui devient la nouvelle référence. On repart de l'étape 1.
+  Pendant la lecture, d affiche ou masque seulement les lignes de délai (masquées au départ).
+
+  Mode dynamique (lecture, éventuellement ralentie)
+  - Le contexte coloré saute de spike en spike quand le présent atteint le suivant. À pleine
+    vitesse, il y a environ 0,5 spike par ms : la référence change de plusieurs spikes par image, et
+    il faut ralentir (k) pour voir chaque saut.
+  - Le spike suivant (bleu, grand) et le cadre en pointillés qui se termine sur lui sont montrés en
+    permanence ; les lignes de délai seulement avec d.
+  - La zone ombrée, elle, suit le présent sans saut.
+
+  Pas à pas
+  - n déplace la fenêtre de contexte sur le spike suivant.
+  - b revient d'une phase de l'explication, puis au spike précédent.
+
+ 6. PILOTAGE
+====================================================================================================
+  Touches et boutons (chaque fonction a un bouton, qui affiche sa touche)
+
+     touche   bouton          action
+     espace   Pause / Play    pause sur le prochain spike / lecture (chaque bouton fait une moitié)
+     k / l    Slower / Faster plus lent / plus rapide
+     c        Chain           mode chaîne
+     d        Delays          explication en 3 appuis (en pause) ; lignes de délai (en lecture)
+     n / b    Next / Back     spike suivant / précédent
+     s        41 ms           zone ombrée
+     r        Reset view      vue (tous les neurones, période de 3 s, vitesse ×1) et couleurs de la
+                              chaîne ; la chaîne reste active et repart du présent
+     f        Fullscreen      plein écran
+     z        Zen             mode zen
+     ? ou h   Help            aide à l'écran
+
+  Ordre des boutons : il suit la séquence de la présentation, sans numéros affichés : Slower, Pause,
+  Chain, Delays, Next, Play ; puis, sur une seconde ligne, Back, Faster, 41 ms, Reset view,
+  Fullscreen, Zen, Help.
+
+  Les touches lisent le caractère tapé (e.key) et non la touche physique, pour fonctionner sur un
+  clavier AZERTY. Esc n'est pas utilisé : il sert à sortir du plein écran.
+  La barre d'espace n'active jamais un bouton qui aurait le focus, et sa répétition automatique est
+  ignorée.
+
+  Trackpad et souris
+  - Défilement à deux doigts : vertical = neurones ; horizontal = temps (met en pause ; la chaîne
+    suit).
+  - Pincement (ou ctrl + molette) : zoom du temps. Option + pincement (ou alt + molette) : zoom des
+    neurones autour du pointeur. Sous Safari, le pincement zoome le temps.
+  - Un pincement de trackpad ne donne aucune direction au navigateur, d'où la touche Option.
+
+  Écran tactile et stylet
+  - Un doigt déplace la vue (temps et neurones) ; glisser avec la souris fait de même.
+  - Deux doigts : l'écart horizontal zoome le temps, l'écart vertical zoome les neurones (un axe
+    dont les doigts sont à moins de 30 px est ignoré). Le déplacement du milieu des deux doigts
+    déplace aussi la vue.
+
+  Plein écran et zen
+  - f : plein écran du navigateur.
+  - z : mode zen, sans aucune interface. Le seul texte est la largeur de la fenêtre de temps et le
+    facteur de temps biologique (×0,50 ; ×1 = temps réel), ou « paused » en pause (« pausing… »
+    pendant l'attente du spike). La zone ombrée
+    reste toujours ancrée au présent. On en sort avec z.
+
+ 7. PARAMÈTRES (constantes en tête du script)
+====================================================================================================
+  N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH, DT.
+-->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Izhikevich raster</title>
 <style>
@@ -99,9 +171,9 @@
   #ui { position: fixed; left: 12px; top: 10px; padding: 8px 12px; border-radius: 8px;
         background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--dim); transition: opacity .2s; }
   #btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; max-width: 520px; }
-  #btns button, #zenExit { font: inherit; color: var(--fg); background: transparent; cursor: pointer;
+  #btns button { font: inherit; color: var(--fg); background: transparent; cursor: pointer;
         border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
-  #btns button:hover, #zenExit:hover { border-color: var(--dim); }
+  #btns button:hover { border-color: var(--dim); }
   #btns button.on { background: color-mix(in srgb, var(--now) 25%, transparent); border-color: var(--now); }
   #btns { align-items: center; }
   #btns .sep { flex-basis: 100%; height: 0; }
@@ -118,13 +190,10 @@
   #help h2 { margin: 0 0 10px; font-size: 14px; }
   #help dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 0 0 12px; }
   #help dt { color: var(--now); } #help dd { margin: 0; color: var(--dim); }
-  #zenExit { position: fixed; right: 12px; top: 10px; display: none; opacity: .25; }
-  #zenExit:hover { opacity: 1; }
-  /* zen mode: only the time window slider remains, faint until hovered */
-  body.zen #btns, body.zen #hud, body.zen .full-only { display: none; }
-  body.zen #ui { opacity: .25; }
-  body.zen #ui:hover { opacity: 1; }
-  body.zen #zenExit { display: block; }
+  /* zen mode: no interface, only the width of the time window and the speed (or "paused") as text */
+  #zenInfo { position: fixed; left: 12px; bottom: 8px; color: var(--dim); pointer-events: none; display: none; }
+  body.zen #ui, body.zen #hud { display: none; }
+  body.zen #zenInfo { display: block; }
 </style>
 </head>
 <body>
@@ -151,23 +220,23 @@
   <div id="sliders">
     <label for="span">time window</label>
     <input id="span" autocomplete="off" type="range" min="50" max="3000" step="1" value="3000"><output id="spanOut"></output>
-    <label for="speed" class="full-only">speed</label>
-    <input id="speed" autocomplete="off" class="full-only" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut" class="full-only"></output>
+    <label for="speed">speed</label>
+    <input id="speed" autocomplete="off" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut"></output>
   </div>
 </div>
-<button id="zenExit" data-act="zen">exit zen <kbd>z</kbd></button>
+<div id="zenInfo"></div>
 <div id="hud"></div>
 <div id="help"><div>
   <h2>Keys</h2>
   <dl>
     <dt>space</dt><dd>pause / play: a pause waits for the closest next spike and stops on it (press again to cancel); the buttons Pause and Play do each half</dd>
-    <dt>c</dt><dd>chain: the current spike and its 41 ms context window in colour; the next spike is blue</dd>
+    <dt>c</dt><dd>chain: the current spike and its 41 ms context window in colour; the next spike (blue) appears at the first press of d, or while playing</dd>
     <dt>n / b</dt><dd>next / back, spike by spike (with the chain, the context window moves onto the next spike)</dd>
     <dt>d</dt><dd>with the chain, paused: explains one prediction in 3 presses &mdash; (1) the next spike and the dashed box of the 41 ms before it, (2) the delays from the spikes of the box to it, (3) the context window moves onto it. While playing: show / hide the delay lines</dd>
-    <dt>s</dt><dd>shade the last 41 ms before the present (always shown with the chain)</dd>
+    <dt>s</dt><dd>shade the last 41 ms before the present (always shown with the chain and in zen mode)</dd>
     <dt>k / l</dt><dd>slower / faster</dd>
     <dt>r</dt><dd>reset the view (all neurons, the 3 s period, speed ×1) and the colours of the chain</dd>
-    <dt>f / z</dt><dd>fullscreen / zen mode</dd>
+    <dt>f / z</dt><dd>fullscreen / zen mode (no interface; the only text is the width of the time window and the speed, or &laquo;paused&raquo;; z leaves it)</dd>
     <dt>? or h</dt><dd>this help</dd>
   </dl>
   <h2>Trackpad and mouse</h2>
@@ -179,7 +248,7 @@
   <h2>Touch screen</h2>
   <dl>
     <dt>one finger</dt><dd>drag to move in time and through the neurons</dd>
-    <dt>two fingers</dt><dd>spread horizontally = zoom the time window &middot; spread vertically = zoom the neurons</dd>
+    <dt>two fingers</dt><dd>spread horizontally = zoom the time window &middot; spread vertically = zoom the neurons &middot; moving both = move the view</dd>
   </dl>
   <dd style="margin:0;color:var(--dim)">click anywhere to close</dd>
 </div></div>
@@ -239,6 +308,7 @@ function latestIndex(x) { const i = lowerBound(x + 1e-6) - 1; return i < 0 ? M -
 const canvas = document.getElementById('raster');
 const ctx = canvas.getContext('2d');
 const hud = document.getElementById('hud');
+const zenInfo = document.getElementById('zenInfo');
 let W = 0, H = 0, dpr = 1;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const COL = {};
@@ -294,7 +364,7 @@ function panNeurons(rows) { firstF = first0 + rows; updateView(); }
 function panTime(dt) {   // moving in time pauses the animation; the chain follows the present
   paused = true; pausing = false;
   now = ((now + dt) % T_TOTAL + T_TOTAL) % T_TOTAL;
-  if (chainOn) setRef(latestIndex(now), 0);
+  if (chainOn) { if (dt < 0) hueMap.clear(); setRef(latestIndex(now), 0); }   // going back in time clears the colours
   syncButtons();
 }
 canvas.addEventListener('wheel', e => {
@@ -469,13 +539,18 @@ for (const b of buttons) b.addEventListener('click', () => { acts[b.dataset.act]
 window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || !keys[e.key.toLowerCase()]) return;
   e.preventDefault();
+  if (e.repeat && e.key === ' ') return;   // holding the space bar must not toggle play / pause again and again
+  const f = document.activeElement;
+  if (f && f !== document.body && f.blur) f.blur();   // a focused button or slider must not react as well
   acts[keys[e.key.toLowerCase()]](); syncButtons();
 });
+// releasing the space bar would also click a focused button: the space bar only toggles play / pause
+window.addEventListener('keyup', e => { if (e.key === ' ') e.preventDefault(); });
 document.addEventListener('fullscreenchange', syncButtons);
 syncButtons();
 
 // ---- drawing -------------------------------------------------------------------
-const hsl = h => `hsl(${h.toFixed(0)} 80% 60%)`;
+const hsl = (h, l = 60, sat = 80) => `hsl(${h.toFixed(0)} ${sat}% ${l}%)`;
 
 function draw() {
   const t0 = now - NOW_FRAC * tView, t1 = t0 + tView;
@@ -487,8 +562,8 @@ function draw() {
   ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
 
   // shaded area: the last T_SHADE before the present instant, always anchored to the present bar
-  // (always shown with the chain, otherwise with the key s)
-  if (shade || chainOn) {
+  // (always shown with the chain and in zen mode, otherwise with the key s)
+  if (shade || chainOn || zen) {
     ctx.globalAlpha = 0.18; ctx.fillStyle = COL.now;
     ctx.fillRect(x(now - T_SHADE), 0, x(now) - x(now - T_SHADE), H);
     ctx.globalAlpha = 1;
@@ -529,7 +604,7 @@ function draw() {
     if (showNext) group({src: chain.src, tt: chain.nextT, tn: chain.next}, 0.8, true);
   }
 
-  // spikes: the present is brighter than the past; the future is faint
+  // spikes: the present is brighter than the past; the future is progressively paler
   const tick = Math.max(1, 0.9 * rowH);   // a spike sits on the line of its neuron, 90% of the distance between two lines high
   for (const shift of SHIFTS) {
     const a = lowerBound(t0 - shift), b = lowerBound(t1 - shift);
@@ -537,12 +612,12 @@ function draw() {
       const row = spikes.n[k] - first0;
       if (row < 0 || row >= nShown) continue;
       const t = spikes.t[k] + shift, age = now - t;          // age > 0 past, < 0 future
-      let alpha = age < 0 ? 0.3 : 0.6 + 0.4 * Math.exp(-age / 0.8), color = COL.spike, w = 2.5;
+      let alpha = age < 0 ? 0.04 + 0.3 * Math.exp(age / 0.5) : 0.6 + 0.4 * Math.exp(-age / 0.8), color = COL.spike, w = 2.5;
       let fl2 = 0;   // the predicted spike is drawn as large as a spike reaching the present
       const fl = age >= 0 && age < FLASH ? 1 - age / FLASH : 0;   // flash of the spike which has just reached the present
       if (chainOn && chain) {
         if (showNext && k === chain.next) { color = COL.next; fl2 = 1; alpha = 1; }
-        else if (k === chain.ref) { color = hsl(hueMap.get(k)); w = 4; alpha = 1; }
+        else if (k === chain.ref) { color = hsl(hueMap.get(k), 75, 100); w = 4; alpha = 1; }   // strong colour
         else if (chain.inWin.has(k)) { color = hsl(hueMap.get(k)); w = 3; alpha = 1; }
         else if (hueMap.has(k)) color = hsl(hueMap.get(k));
       }
@@ -561,7 +636,8 @@ function draw() {
   ctx.globalAlpha = 1;
 
   const info = chainOn && chain ? `   ·   chain: step ${stepN}, ${['context', 'next spike', 'delays'][chain.phase]}` : '';
-  hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   neurons ${first0}–${first0 + nShown - 1} of ${N_NEURON}   ·   ×${speed.toFixed(2)}${info}`;
+  if (zen) zenInfo.textContent = `${Math.round(tView * 1000)} ms  ·  ${paused ? 'paused' : pausing ? 'pausing…' : '×' + speed.toFixed(2)}`;
+  hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   neurons ${first0}–${first0 + nShown - 1} of ${N_NEURON}   ·   ×${speed.toFixed(2)}${info}${pausing ? '   ·   pausing…' : ''}`;
 }
 
 function frame(ts) {

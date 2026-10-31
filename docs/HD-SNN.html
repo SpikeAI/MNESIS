@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!--
+====================================================================================================
+ CAHIER DES CHARGES : docs/HD-SNN.html
+====================================================================================================
+
+ 1. BUT ET PRINCIPE
+====================================================================================================
+  Illustrer de façon dynamique le HD-SNN (Heterogeneous Delays Spiking Neural Network) de l'article
+  « Accurate detection of spiking motifs by learning heterogeneous delays of a spiking neural
+  network » (L. U. Perrinet, ICANN 2023, arXiv 2307.11555) :
+  https://laurentperrinet.github.io/publication/perrinet-23-icann/
+
+  Des neurones LIF reçoivent des spikes d'entrée par des synapses qui ont chacune un poids et un
+  délai. Quand les spikes d'un motif, décalés par leurs délais, arrivent ensemble sur un neurone de
+  sortie, leurs potentiels postsynaptiques s'additionnent, le seuil est franchi et le neurone émet
+  un spike : le motif est détecté.
+
+  Page autonome (HTML, CSS et JavaScript dans un seul fichier, sans dépendance), à ouvrir dans un
+  navigateur. Mêmes conventions et même affichage que docs/izhikevich.html, sauf ce qui est dit
+  ici (entrées et sorties, potentiels, motifs, pas de zoom sur les neurones, spike de sortie).
+
+  Correspondance entre la figure 1 de l'article et la page :
+  - neurones présynaptiques a1, a2, a3         ->  128 neurones d'entrée (raster du haut)
+  - neurones postsynaptiques b1, b2            ->  5 neurones de sortie (dans le cadre, en bas)
+  - délais synaptiques (1, 5, 9 ms)            ->  délais de 0 à 40 ms, un par synapse
+  - potentiels qui s'additionnent              ->  courbe du potentiel de membrane
+  - seuil (pointillés) et spike de sortie      ->  ligne de seuil à 0, spike tracé jusqu'à 2,5
+
+ 2. SIGNAL ET MODÈLE
+====================================================================================================
+  Neurones de sortie (LIF à délais hétérogènes, pas de 1 ms)
+  - 5 neurones, un motif chacun. Tous les délais vont de 0 à 40 ms : 41 délais possibles, d'où la
+    fenêtre de 41 ms. Chaque neurone a trois groupes de synapses, comme le noyau équilibré (poids
+    positifs et négatifs) de la figure 2b de l'article :
+    - son motif : 12 synapses excitatrices (12 entrées distinctes, 12 délais distincts) ;
+    - 12 synapses inhibitrices structurées (poids égal à la moitié de l'opposé du poids du motif) ;
+    - un bruit de fond : une synapse par entrée (128), de délai et de signe aléatoires (environ la
+      moitié sont inhibitrices), de poids moyen 0,08.
+  - V(t) = V_repos + beta (V(t-1) - V_repos) + somme des poids des spikes d'entrée qui arrivent à t
+    (émis à t - délai), avec beta = exp(-1 ms / 10 ms) et V_repos = 0,35 (la fuite ramène le
+    potentiel vers ce repos). Le potentiel est borné par le bas à 0.
+  - Seuil à 1 ; à chaque spike, le potentiel est remis à zéro, puis il remonte vers le repos.
+  - Poids du motif 0,09 : 12 spikes qui arrivent ensemble ajoutent 1,08 (le seuil est franchi) ;
+    les 3 spikes d'une occurrence partielle ajoutent 0,27 (il ne l'est pas).
+
+  Normalisation du potentiel affiché : u = V / seuil - 1.
+  - Sous le seuil, u est dans [-1, 0) : -1 = remise à zéro (minimum), 0 = seuil. Le repos est à
+    u = -0,65.
+  - Un spike de sortie vaut u = 2,5 (puis le potentiel repart de -1).
+
+  Raster d'entrée (128 neurones, 3 s en boucle sans coupure au raccord)
+  - Motifs insérés : pour chaque sortie, 3 occurrences complètes (les 12 spikes du motif, émis à
+    t - délai, donc convergents en t) et 2 occurrences partielles (3 spikes sur 12 : le potentiel
+    monte sans atteindre le seuil). Deux occurrences sont séparées d'au moins 60 ms.
+  - Activité de fond : tirage de Poisson à 2 Hz par entrée. Filtrée par les synapses de fond,
+    excitatrices et inhibitrices, elle fait fluctuer le potentiel autour du repos comme une trace
+    physiologique (PSP des deux signes, écart type de u d'environ 0,12).
+  - Tirage unique à graine fixe (mulberry32), puis gelé et rejoué à l'identique à chaque période ;
+    temps discrétisés au pas de 1 ms, sans que deux entrées tirent au même instant.
+  - Le potentiel des sorties est calculé une fois pour toute la période (sur deux périodes, dont la
+    seconde est gardée, pour que la boucle soit sans coupure).
+
+ 3. AFFICHAGE
+====================================================================================================
+  Plein écran sur un canvas, en deux zones.
+  - Entrées (en haut, environ 70 % de la hauteur) : une ligne horizontale très fine par neurone
+    (128 lignes). Seuls les spikes sont montrés : un bref trait vertical posé sur la ligne de son
+    neurone, haut de 90 % de la distance entre deux lignes.
+  - Sorties (en bas, environ 30 %) : les 5 neurones sont isolés dans un cadre. Chacun a une bande où
+    est tracé son potentiel de membrane, de -1 à 2,5, avec une teinte fixe par neurone, une ligne de
+    remise à zéro à -1 et une ligne de seuil en pointillés à 0. Un spike est un trait vertical
+    jusqu'à 2,5.
+  - Axe du temps : fenêtre réglable de 50 ms à 3 s (au départ, toute la période de 3 s), qui défile
+    en temps réel. Le passé s'estompe, le futur est progressivement plus pâle.
+  - Présent : une barre bleutée à 80 % de la largeur, dessinée derrière les spikes.
+  - Zone ombrée : les 41 ms qui précèdent le présent, sur toute la hauteur. Elle est toujours ancrée
+    à la barre du présent et la suit de façon continue. Affichée avec la touche s, toujours avec le
+    mode motif et en mode zen.
+  - Visibilité : un spike qui atteint le présent « flashe » pendant 150 ms (blanc, halo, élargi ;
+    un spike déjà coloré par le mode motif garde sa teinte).
+  - Indicateurs : deux curseurs (fenêtre de temps ; vitesse), un texte d'état en bas à gauche
+    (instant, valeurs de u des 5 sorties au présent, vitesse, état du mode motif) et une aide à
+    l'écran (? ou h ; un clic la ferme).
+  - Pas de zoom ni de défilement sur les neurones : la disposition tient à l'écran.
+
+ 4. TEMPS ET LECTURE
+====================================================================================================
+  - Vitesse : de ×0,02 à ×1 (échelle logarithmique ; ×1 = temps biologique réel), par les touches
+    k / l ou le curseur « speed ».
+  - Pause : l'animation ne s'arrête pas n'importe où. Elle continue jusqu'au prochain spike de
+    sortie et s'arrête exactement à son instant. Un second appui sur espace annule la demande ; Play
+    reprend. Avec le mode motif, la séquence repart alors de ce spike.
+    Pendant l'attente, le texte d'état affiche « pausing… ».
+  - Pas à pas, qui met en pause tout de suite : n va au spike de sortie suivant, b au précédent
+    (avec le mode motif, voir 5), avec rebouclage à 3 s.
+  - Déplacement horizontal (défilement, glissement) : met aussi en pause tout de suite ; le mode
+    motif suit.
+
+ 5. MODE MOTIF (touche c)
+====================================================================================================
+  Explique, spike de sortie par spike de sortie, pourquoi le neurone a tiré.
+
+  Activation
+  - Elle sélectionne le spike de sortie le plus récent avant le présent : c'est la référence. Elle
+    est dessinée dans la teinte de son neurone, en plus clair et plus large.
+  - La zone ombrée montre les 41 ms qui la précèdent.
+
+  Couleurs
+  - Une teinte fixe par neurone de sortie ; les spikes d'entrée de son motif prennent cette teinte.
+  - Un spike d'entrée coloré garde sa teinte après être sorti de la fenêtre.
+  - Désactiver le mode (ou réinitialiser avec r) remet toutes les couleurs à zéro. Elles sont aussi
+    remises à zéro au rebouclage de 3 s à 0 s et quand on remonte le temps (défilement ou
+    glissement vers le passé).
+
+  Explication d'un spike de sortie (touche d, en pause avec le mode motif), en 3 appuis
+  1. Le spike de sortie est mis en évidence (grand, avec un halo), avec le cadre en pointillés des
+     41 ms qui le précèdent.
+  2. Les spikes d'entrée de son motif, ceux dont l'instant plus le délai est l'instant du spike de
+     sortie, sont colorés dans la teinte du neurone.
+  3. Les délais sont affichés, en une animation de 2,5 s, du passé vers le présent. Chaque spike
+     d'entrée part de sa synapse présynaptique et un spike glisse le long de sa connexion jusqu'au
+     site postsynaptique du neurone de sortie, en laissant la ligne derrière lui, avec son délai
+     en ms (tous inférieurs à 41 ms). Le spike du plus long délai part le premier ; la durée du
+     trajet est proportionnelle au délai ; tous arrivent en même temps sur le spike de sortie :
+     ils convergent, c'est le mécanisme de détection. Pour la rejouer : b puis d.
+  Un quatrième appui passe au spike de sortie suivant (ses étapes repartent de zéro).
+  Pendant la lecture, d affiche ou masque seulement les lignes de délai, sans animation (masquées
+  au départ).
+
+  Mode dynamique (lecture, éventuellement ralentie)
+  - La référence suit le dernier spike de sortie émis ; le cadre en pointillés et les spikes
+    d'entrée colorés de son motif sont montrés en permanence ; les lignes de délai seulement avec d.
+  - La zone ombrée, elle, suit le présent sans saut.
+
+  Pas à pas
+  - n déplace la référence sur le spike de sortie suivant.
+  - b revient d'une phase de l'explication, puis au spike de sortie précédent.
+
+ 6. PILOTAGE
+====================================================================================================
+  Touches et boutons (chaque fonction a un bouton, qui affiche sa touche)
+
+     touche   bouton          action
+     espace   Pause / Play    pause sur le prochain spike de sortie / lecture
+     k / l    Slower / Faster plus lent / plus rapide
+     c        Motif           mode motif
+     d        Delays          explication en 3 appuis (en pause) ; lignes de délai (en lecture)
+     n / b    Next / Back     spike de sortie suivant / précédent
+     s        41 ms           zone ombrée
+     r        Reset view      fenêtre de temps (3 s), vitesse ×1 et couleurs ; le mode motif reste
+                              actif et repart du présent
+     f        Fullscreen      plein écran
+     z        Zen             mode zen
+     ? ou h   Help            aide à l'écran
+
+  Ordre des boutons : il suit la séquence de la présentation, sans numéros affichés : Slower, Pause,
+  Motif, Delays, Next, Play ; puis, sur une seconde ligne, Back, Faster, 41 ms, Reset view,
+  Fullscreen, Zen, Help.
+
+  Les touches lisent le caractère tapé (e.key) et non la touche physique, pour fonctionner sur un
+  clavier AZERTY. Esc n'est pas utilisé : il sert à sortir du plein écran.
+  La barre d'espace n'active jamais un bouton qui aurait le focus, et sa répétition automatique est
+  ignorée.
+
+  Trackpad et souris
+  - Défilement horizontal à deux doigts : déplacement dans le temps (met en pause).
+  - Pincement (ou ctrl + molette) : zoom du temps. Sous Safari, le pincement zoome aussi le temps.
+
+  Écran tactile et stylet
+  - Un doigt déplace la vue dans le temps ; glisser avec la souris fait de même.
+  - Deux doigts : l'écart horizontal zoome le temps ; le déplacement du milieu déplace la vue.
+
+  Plein écran et zen
+  - f : plein écran du navigateur.
+  - z : mode zen, sans aucune interface. Le seul texte est la largeur de la fenêtre de temps et le
+    facteur de temps biologique (×0,50 ; ×1 = temps réel), ou « paused » en pause (« pausing… »
+    pendant l'attente du spike de sortie). La zone ombrée
+    reste toujours ancrée au présent. On en sort avec z.
+
+ 7. PARAMÈTRES (constantes en tête du script)
+====================================================================================================
+  N_IN, N_OUT, T_TOTAL, T_VIEW, NOW_FRAC, RATE, DT, D_MAX (41), K_EXC, K_INH, W_EXC, W_INH, W_BG,
+  V_REST, TAU,
+  THETA, U_SPIKE (2,5), N_FULL, N_PARTIAL, K_PARTIAL, MIN_SEP, OUT_FRAC, T_SHADE (41 ms), FLASH,
+  ANIM_MS.
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HD-SNN raster</title>
+<style>
+  :root { --bg: #0b0d12; --fg: #e8e8ea; --spike: #e6e9f0; --now: #ff9f1c; --dim: #8a90a0; --line: #3a4252;
+          --present: #4dabf7; --frame: #8a90a0; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
+               font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+  #ui { position: fixed; left: 12px; top: 10px; padding: 8px 12px; border-radius: 8px;
+        background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--dim); transition: opacity .2s; }
+  #btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; max-width: 520px; align-items: center; }
+  #btns button { font: inherit; color: var(--fg); background: transparent; cursor: pointer;
+        border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+  #btns button:hover { border-color: var(--dim); }
+  #btns button.on { background: color-mix(in srgb, var(--now) 25%, transparent); border-color: var(--now); }
+  #btns .sep { flex-basis: 100%; height: 0; }
+  #btns kbd { font: inherit; color: var(--dim); margin-left: 4px; }
+  #sliders { display: grid; grid-template-columns: auto 180px auto; gap: 4px 10px; align-items: center; }
+  #sliders input { accent-color: var(--now); width: 100%; }
+  #sliders output { color: var(--fg); min-width: 5ch; text-align: right; }
+  #hud { position: fixed; left: 12px; bottom: 8px; color: var(--dim); pointer-events: none; }
+  #help { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--bg) 70%, transparent); }
+  #help.open { display: flex; }
+  #help > div { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 18px 26px;
+                max-width: 560px; color: var(--fg); }
+  #help h2 { margin: 0 0 10px; font-size: 14px; }
+  #help dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; margin: 0 0 12px; }
+  #help dt { color: var(--now); } #help dd { margin: 0; color: var(--dim); }
+  /* zen mode: no interface, only the width of the time window and the speed (or "paused") as text */
+  #zenInfo { position: fixed; left: 12px; bottom: 8px; color: var(--dim); pointer-events: none; display: none; }
+  body.zen #ui, body.zen #hud { display: none; }
+  body.zen #zenInfo { display: block; }
+</style>
+</head>
+<body>
+<canvas id="raster"></canvas>
+<div id="ui">
+  <div id="btns">
+    <!-- the first buttons follow the sequence of the talk: slow down, pause and show how an output spike
+         is explained by its motif and its delays, step to the next output spikes, play again -->
+    <button data-act="slower">Slower <kbd>k</kbd></button>
+    <button data-act="pause">Pause <kbd>space</kbd></button>
+    <button data-act="chain">Motif <kbd>c</kbd></button>
+    <button data-act="delays">Delays <kbd>d</kbd></button>
+    <button data-act="step">Next <kbd>n</kbd></button>
+    <button data-act="play">Play <kbd>space</kbd></button>
+    <span class="sep"></span>
+    <button data-act="back">Back <kbd>b</kbd></button>
+    <button data-act="faster">Faster <kbd>l</kbd></button>
+    <button data-act="shade">41 ms <kbd>s</kbd></button>
+    <button data-act="reset">Reset view <kbd>r</kbd></button>
+    <button data-act="full">Fullscreen <kbd>f</kbd></button>
+    <button data-act="zen">Zen <kbd>z</kbd></button>
+    <button data-act="help">Help <kbd>?</kbd></button>
+  </div>
+  <div id="sliders">
+    <label for="span">time window</label>
+    <input id="span" autocomplete="off" type="range" min="50" max="3000" step="1" value="3000"><output id="spanOut"></output>
+    <label for="speed">speed</label>
+    <input id="speed" autocomplete="off" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut"></output>
+  </div>
+</div>
+<div id="zenInfo"></div>
+<div id="hud"></div>
+<div id="help"><div>
+  <h2>Keys</h2>
+  <dl>
+    <dt>space</dt><dd>pause / play: a pause waits for the next output spike and stops on it (press again to cancel); the buttons Pause and Play do each half</dd>
+    <dt>c</dt><dd>motif mode: the latest output spike is the reference, drawn in the colour of its neuron, with the 41 ms before it</dd>
+    <dt>n / b</dt><dd>next / back, output spike by output spike (with the motif mode, the reference moves)</dd>
+    <dt>d</dt><dd>with the motif mode, paused: explains one output spike in 3 presses &mdash; (1) the spike and the dashed box of the 41 ms before it, (2) the input spikes of its motif, in its colour, (3) the delays, animated from the past to the present: a spike slides along each connection to the output neuron and they all arrive together on its spike (b then d replays it); a 4th press goes to the next output spike. While playing: show / hide the delay lines</dd>
+    <dt>s</dt><dd>shade the last 41 ms before the present (always shown with the motif mode and in zen mode)</dd>
+    <dt>k / l</dt><dd>slower / faster</dd>
+    <dt>r</dt><dd>reset the view (the 3 s period, speed ×1) and the colours</dd>
+    <dt>f / z</dt><dd>fullscreen / zen mode (no interface; the only text is the width of the time window and the speed, or &laquo;paused&raquo;; z leaves it)</dd>
+    <dt>? or h</dt><dd>this help</dd>
+  </dl>
+  <h2>Reading the raster</h2>
+  <dl>
+    <dt>top</dt><dd>128 input neurons: spikes only</dd>
+    <dt>frame</dt><dd>5 output LIF neurons with delays up to 41 ms: membrane potential u from &minus;1 (reset) to 0 (threshold), with background excitatory and inhibitory synapses; a spike is drawn up to 2.5</dd>
+  </dl>
+  <h2>Trackpad and mouse</h2>
+  <dl>
+    <dt>two-finger scroll</dt><dd>horizontal: move in time (pauses)</dd>
+    <dt>pinch</dt><dd>zoom the time window (ctrl + wheel)</dd>
+  </dl>
+  <h2>Touch screen</h2>
+  <dl>
+    <dt>one finger</dt><dd>drag to move in time</dd>
+    <dt>two fingers</dt><dd>spread horizontally = zoom the time window &middot; moving both = move in time</dd>
+  </dl>
+  <dd style="margin:0;color:var(--dim)">click anywhere to close</dd>
+</div></div>
+
+<script>
+// ---- parameters ------------------------------------------------------------
+const N_IN      = 128;     // input neurons
+const N_OUT     = 5;       // output neurons
+const T_TOTAL   = 3.0;     // s, duration of the signal (looped)
+const T_VIEW    = T_TOTAL; // s, duration shown on screen at start: the whole period (time window slider)
+const NOW_FRAC  = 0.8;     // position of the present instant in the window
+const RATE      = 2;       // Hz, background firing rate of each input
+const DT        = 0.001;   // s, time step; spike times are multiples of it
+const D_MAX     = 41;      // number of possible delays: 0 to 40 ms
+const T_SHADE   = D_MAX * DT;            // s, the longest delay: the context window
+const K_EXC     = 12;      // excitatory synapses of a neuron: its motif
+const K_INH     = 12;      // inhibitory synapses of a neuron
+const W_EXC     = 0.09;    // excitatory weight of the motif (12 coincident spikes: 1.08)
+const W_INH     = -0.5 * W_EXC;
+const W_BG      = 0.08;    // mean magnitude of the weights of the background synapses (one per input)
+const V_REST    = 0.35;    // raw potential the leak relaxes to (u = -0.65); a reset goes to 0, below it
+const TAU       = 0.010;   // s, membrane time constant
+const BETA      = Math.exp(-DT / TAU);   // leak per time step
+const THETA     = 1;       // threshold of the raw potential V (reset to 0 after a spike)
+const U_SPIKE   = 2.5;     // normalised potential u = V / THETA - 1 drawn for a spike
+const N_FULL    = 3;       // complete occurrences of its motif for each output neuron
+const N_PARTIAL = 2;       // partial occurrences of its motif for each output neuron
+const K_PARTIAL = 3;       // spikes of a partial occurrence
+const MIN_SEP   = 0.06;    // s, minimum separation between two occurrences
+const OUT_FRAC  = 0.34;    // fraction of the height taken by the outputs
+const FLASH     = 0.15;    // s, duration of the flash of a spike reaching the present
+const ANIM_MS   = 2500;    // ms, duration of the animation of the delay lines (3rd press of d)
+const N_BIN     = Math.round(T_TOTAL / DT);
+const SHIFTS    = [-T_TOTAL, 0, T_TOTAL];   // wrap-around of the loop
+
+// ---- seeded random generator -----------------------------------------------
+function mulberry32(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const rand = mulberry32(2026);
+const randInt = n => Math.floor(rand() * n);
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// ---- model: kernels of the output neurons, input raster with inserted motifs ---------------------
+// A kernel is a set of synapses {a: input, d: delay in steps, w: weight}. A spike emitted by input a at step e
+// reaches the neuron at step e + d.
+function buildKernels() {
+  const kernels = [];
+  for (let o = 0; o < N_OUT; o++) {
+    const ins = shuffle([...Array(N_IN).keys()]).slice(0, K_EXC);
+    const dls = shuffle([...Array(D_MAX).keys()]).slice(0, K_EXC);   // distinct delays, 0 to 40 ms
+    const exc = ins.map((a, i) => ({a, d: dls[i], w: W_EXC}));
+    const taken = new Set(exc.map(s => s.a * D_MAX + s.d)), inh = [];
+    while (inh.length < K_INH) {
+      const a = randInt(N_IN), d = randInt(D_MAX);
+      if (taken.has(a * D_MAX + d)) continue;
+      taken.add(a * D_MAX + d); inh.push({a, d, w: W_INH});
+    }
+    // background synapses: one per input, random delay, random sign (half of them inhibitory), so that the
+    // background activity of the inputs makes the potential fluctuate with PSPs of both signs
+    const bg = [];
+    for (let a = 0; a < N_IN; a++) {
+      let d = randInt(D_MAX);
+      while (taken.has(a * D_MAX + d)) d = randInt(D_MAX);
+      taken.add(a * D_MAX + d);
+      bg.push({a, d, w: (rand() < 0.5 ? 1 : -1) * W_BG * (0.5 + rand())});
+    }
+    kernels.push({exc, inh, bg});
+  }
+  return kernels;
+}
+
+function buildRaster(kernels) {
+  const used = new Uint8Array(N_BIN);          // steps which already hold an input spike: never two at once
+  const A = new Uint8Array(N_IN * N_BIN);      // dense raster A[a * N_BIN + step]
+  const put = (a, b) => { used[b] = 1; A[a * N_BIN + b] = 1; };
+  // inserted motifs: each occurrence is at step b and emits its spikes at b - d, so that they converge at b
+  const occ = [];
+  const tooClose = b => occ.some(e => { const dd = Math.abs(e.b - b); return Math.min(dd, N_BIN - dd) < MIN_SEP / DT; });
+  const kinds = [...Array(N_FULL).fill(true), ...Array(N_PARTIAL).fill(false)];
+  for (const full of kinds) {
+    for (let o = 0; o < N_OUT; o++) {
+      for (let tries = 0; tries < 5000; tries++) {
+        const b = randInt(N_BIN);
+        if (tooClose(b)) continue;
+        const syn = full ? kernels[o].exc : shuffle(kernels[o].exc.slice()).slice(0, K_PARTIAL);
+        const em = syn.map(s => (b - s.d + N_BIN) % N_BIN);
+        if (em.some(e => used[e])) continue;
+        syn.forEach((s, i) => put(s.a, em[i]));
+        occ.push({o, b, full});
+        break;
+      }
+    }
+  }
+  // background: Poisson at RATE for each input, moved to the next free step when its step is taken
+  for (let a = 0; a < N_IN; a++) {
+    let t = -Math.log(1 - rand()) / RATE;
+    while (t < T_TOTAL) {
+      let b = Math.min(N_BIN - 1, Math.floor(t / DT));
+      while (used[b]) b = (b + 1) % N_BIN;
+      put(a, b);
+      t += -Math.log(1 - rand()) / RATE;
+    }
+  }
+  // list of the input spikes sorted by time (one at most per step), and the index of each (input, step)
+  const ts = [], ns = [], index = new Map();
+  for (let b = 0; b < N_BIN; b++) if (used[b]) {
+    for (let a = 0; a < N_IN; a++) if (A[a * N_BIN + b]) { index.set(a * N_BIN + b, ts.length); ts.push(b * DT); ns.push(a); break; }
+  }
+  return {A, occ, spikes: {t: Float64Array.from(ts), n: Uint16Array.from(ns)}, index};
+}
+
+// LIF neurons with heterogeneous delays. Two periods are simulated and the second one is kept: the
+// potential forgets its past in a few time constants, so that the loop is seamless.
+// U[o][step]: normalised potential u = V / THETA - 1 (U_SPIKE at a spike); outT, outO: output spikes
+function simulate(kernels, A) {
+  const U = kernels.map(() => new Float32Array(N_BIN)), ev = [];
+  kernels.forEach((k, o) => {
+    const syn = k.exc.concat(k.inh, k.bg);
+    let V = V_REST;
+    for (let step = 0; step < 2 * N_BIN; step++) {
+      let drive = 0;
+      for (const s of syn) if (A[s.a * N_BIN + (((step - s.d) % N_BIN) + N_BIN) % N_BIN]) drive += s.w;
+      V = Math.max(0, V_REST + BETA * (V - V_REST) + drive);   // leaky towards V_REST, bounded below by 0
+      let u;
+      if (V >= THETA) { u = U_SPIKE; V = 0; if (step >= N_BIN) ev.push({t: (step - N_BIN) * DT, o}); }
+      else u = V / THETA - 1;
+      if (step >= N_BIN) U[o][step - N_BIN] = u;
+    }
+  });
+  ev.sort((p, q) => p.t - q.t || p.o - q.o);
+  return {U, outT: Float64Array.from(ev, e => e.t), outO: Uint8Array.from(ev, e => e.o)};
+}
+
+const kernels = buildKernels();
+const {A, occ, spikes, index: inIndex} = buildRaster(kernels);
+const {U, outT, outO} = simulate(kernels, A);
+const M = spikes.t.length, MO = outT.length;
+
+// first index with spikes.t[i] >= x (input spikes) and with outT[i] >= x (output spikes)
+function lowerBound(x) {
+  let lo = 0, hi = M;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (spikes.t[mid] < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+function lowerBoundOut(x) {
+  let lo = 0, hi = MO;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (outT[mid] < x) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+// index of the latest output spike at or before x (wrapping to the last one of the previous period)
+function latestOut(x) { const i = lowerBoundOut(x + 1e-6) - 1; return i < 0 ? MO - 1 : i; }
+
+// ---- canvas -------------------------------------------------------------------
+const canvas = document.getElementById('raster');
+const ctx = canvas.getContext('2d');
+const hud = document.getElementById('hud');
+const zenInfo = document.getElementById('zenInfo');
+let W = 0, H = 0, dpr = 1;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {};
+for (const n of ['bg', 'fg', 'spike', 'now', 'line', 'present', 'frame']) COL[n] = css('--' + n);
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// ---- view: time window and speed sliders ---------------------------------------
+const span = document.getElementById('span'), speedS = document.getElementById('speed');
+let tView = T_VIEW, speed = 1;
+function updateSpan() {
+  tView = +span.value / 1000;
+  document.getElementById('spanOut').textContent = `${span.value} ms`;
+}
+function updateSpeed() {
+  speed = Math.pow(10, +speedS.value);
+  document.getElementById('speedOut').textContent = `×${speed.toFixed(2)}`;
+}
+span.value = T_VIEW * 1000;     // initial values, whatever the browser may restore
+speedS.value = 0;
+span.addEventListener('input', () => { updateSpan(); span.blur(); });
+speedS.addEventListener('input', () => { updateSpeed(); speedS.blur(); });
+updateSpan(); updateSpeed();
+
+// trackpad and mouse: pinch (or ctrl + wheel) zooms the time window, horizontal two-finger scroll moves in
+// time; Safari pinch (gesture events) zooms time
+let spanF = +span.value;
+span.addEventListener('input', () => { spanF = +span.value; });
+function zoomTime(f) {
+  spanF = clamp(spanF * f, +span.min, +span.max); span.value = spanF; updateSpan();
+}
+function panTime(dt) {   // moving in time pauses the animation; the motif mode follows the present
+  paused = true; pausing = false;
+  now = ((now + dt) % T_TOTAL + T_TOTAL) % T_TOTAL;
+  if (chainOn) { if (dt < 0) hueMap.clear(); setRef(latestOut(now), 0); }   // going back in time clears the colours
+  syncButtons();
+}
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey) zoomTime(Math.exp(e.deltaY * 0.01));      // pinch gestures arrive as ctrl + wheel
+  else if (Math.abs(e.deltaX) > 1) panTime(e.deltaX * tView / W);
+}, {passive: false});
+// touch screens and pens (and a mouse drag): one pointer drags the view in time; with two fingers the
+// horizontal spread zooms the time window
+const ptr = new Map();
+let pinch = null;
+const pair = () => { const [a, b] = [...ptr.values()];
+  return {dx: Math.abs(a.x - b.x), mx: (a.x + b.x) / 2}; };
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  ptr.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  pinch = ptr.size === 2 ? pair() : null;
+});
+canvas.addEventListener('pointermove', e => {
+  const p = ptr.get(e.pointerId);
+  if (!p) return;
+  const ddx = e.clientX - p.x;
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptr.size === 1) {
+    if (Math.abs(ddx) > 1) panTime(-ddx * tView / W);
+  } else if (ptr.size === 2 && pinch) {
+    const q = pair(), MIN = 30;   // px; fingers closer than this are ambiguous and are left alone
+    if (pinch.dx > MIN && q.dx > MIN) zoomTime(pinch.dx / q.dx);
+    if (Math.abs(q.mx - pinch.mx) > 1) panTime(-(q.mx - pinch.mx) * tView / W);
+    pinch = q;
+  }
+});
+const endPointer = e => { ptr.delete(e.pointerId); pinch = ptr.size === 2 ? pair() : null; };
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+let g0 = 1;
+canvas.addEventListener('gesturestart', e => { e.preventDefault(); g0 = e.scale; });
+canvas.addEventListener('gesturechange', e => { e.preventDefault(); zoomTime(g0 / e.scale); g0 = e.scale; });
+
+// ---- state ---------------------------------------------------------------------
+let now = 0, paused = false, pausing = false, pauseAt = 0, shade = false, last = performance.now();
+let animStart = 0;   // clock time of the start of the animation of the delay lines
+const clock = () => performance.now();
+let chainOn = false, delays = false, zen = false;   // delays: the delay lines while playing, off until the Delays button / key d
+
+// motif mode: the reference is an output spike `ref` (index in outT). phase 0: the spike is selected;
+// 1: and the dashed box of the 41 ms before it, the spike enlarged; 2: and the input spikes of its motif,
+// in the colour of its neuron; 3: and the delay lines from these input spikes to it. A further step
+// moves the reference to the next output spike (phase 0).
+let chain = null;
+const hueMap = new Map();                // coloured input spikes: input spike index -> hue of its output neuron
+let stepN = 0;
+const HUE = o => (o * 72 + 15) % 360;    // one fixed hue per output neuron
+const hsl = (h, l = 60, sat = 80) => `hsl(${h.toFixed(0)} ${sat}% ${l}%)`;
+
+// the input spikes which make output spike r: those whose step plus delay is the step of the spike
+function contribOf(r) {
+  const o = outO[r], tr = outT[r], bin = Math.round(tr / DT) % N_BIN, out = [];
+  for (const s of kernels[o].exc) {
+    const j = inIndex.get(s.a * N_BIN + (((bin - s.d) % N_BIN) + N_BIN) % N_BIN);
+    if (j !== undefined) out.push({j, t: tr - s.d * DT, d: s.d});
+  }
+  return out.sort((p, q) => p.t - q.t);
+}
+
+function colour() { const h = HUE(chain.o); for (const c of chain.contrib) hueMap.set(c.j, h); }
+
+function setRef(r, phase, back = false) {
+  if (!back && chain && r < chain.ref) hueMap.clear();   // wrap-around of the loop
+  const contrib = contribOf(r);
+  chain = {ref: r, o: outO[r], tr: outT[r], contrib, inSet: new Set(contrib.map(c => c.j)), phase};
+  if (back) stepN = Math.max(1, stepN - 1); else stepN++;
+  if (phase >= 2) colour();
+}
+
+function chainOff() { chain = null; hueMap.clear(); stepN = 0; }
+
+// ---- actions (keys and buttons) ------------------------------------------------
+function step() {
+  paused = true; pausing = false;
+  if (!chainOn) {   // jump to the next output spike
+    let k = lowerBoundOut(now + 1e-6);
+    if (k >= MO) k = 0;
+    now = outT[k];
+  } else { const r = (chain.ref + 1) % MO; setRef(r, 0); now = outT[r]; }   // the reference moves on
+}
+
+function stepBack() {
+  paused = true; pausing = false;
+  if (!chainOn) {   // jump to the previous output spike
+    let k = lowerBoundOut(now - 1e-6) - 1;
+    if (k < 0) k = MO - 1;
+    now = outT[k];
+  } else if (chain.phase > 0) {
+    if (chain.phase === 2) for (const c of chain.contrib) hueMap.delete(c.j);   // undo the colours of the motif
+    chain.phase--;
+  } else { const r = (chain.ref + MO - 1) % MO; setRef(r, 3, true); now = outT[r]; animStart = clock(); }
+}
+
+// d, paused with the motif mode on: explains one output spike in three presses
+//   1. the spike and the dashed box of the 41 ms window which ends at it
+//   2. the input spikes of its motif, in the colour of its neuron
+//   3. the delays which make them converge on it; a fourth press goes to the next output spike
+function explain() {
+  if (chain.phase < 3) { chain.phase++; if (chain.phase === 2) colour(); if (chain.phase === 3) animStart = clock(); }
+  else { const r = (chain.ref + 1) % MO; setRef(r, 0); now = outT[r]; }
+}
+
+function resetView() {
+  span.value = spanF = T_VIEW * 1000; updateSpan();
+  speedS.value = 0; updateSpeed();
+  chainOff();   // the colours too: the hues are cleared
+  if (chainOn) setRef(latestOut(now), paused ? 0 : 2);   // the motif mode stays active, restarting from the present
+}
+
+const acts = {
+  toggle: () => { if (paused || pausing) acts.play(); else acts.pause(); },
+  pause:  () => {   // the animation stops on the next output spike: it keeps running until the present reaches it
+    if (paused || pausing) return;
+    const k = lowerBoundOut(now + 1e-6);
+    pauseAt = k < MO ? outT[k] : outT[0] + T_TOTAL;   // time of the spike, in the frame of `now` (may be > T_TOTAL)
+    pausing = true;
+  },
+  play:   () => { paused = false; pausing = false; },
+  shade:  () => { shade = !shade; },
+  chain:  () => {
+    chainOn = !chainOn;
+    if (!chainOn) { chainOff(); return; }
+    const r = latestOut(now);
+    setRef(r, paused ? 0 : 2);
+    if (paused) now = outT[r];
+  },
+  step, back: stepBack, reset: resetView,
+  help:   () => document.getElementById('help').classList.toggle('open'),
+  delays: () => {   // paused: the explanation of one output spike, step by step; playing: shows or hides the delay lines
+    if (!chainOn) return;
+    if (paused) explain(); else delays = !delays;
+  },
+  slower: () => { speedS.value = Math.max(+speedS.min, +speedS.value - 0.15); updateSpeed(); },
+  faster: () => { speedS.value = Math.min(+speedS.max, +speedS.value + 0.15); updateSpeed(); },
+  full:   () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  },
+  zen:    () => { zen = !zen; document.body.classList.toggle('zen', zen); },
+};
+const keys = {' ': 'toggle', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'reset', '?': 'help', h: 'help', d: 'delays', k: 'slower', l: 'faster', f: 'full', z: 'zen'};
+
+const buttons = document.querySelectorAll('button[data-act]');
+function syncButtons() {
+  const on = {pause: paused || pausing, play: !paused && !pausing, shade, chain: chainOn, delays: !!chain && chainOn && (paused ? chain.phase === 3 : delays),
+              full: !!document.fullscreenElement, zen};
+  for (const b of buttons) {
+    b.classList.toggle('on', !!on[b.dataset.act]);
+  }
+}
+document.getElementById('help').addEventListener('click', () => acts.help());
+for (const b of buttons) b.addEventListener('click', () => { acts[b.dataset.act](); b.blur(); syncButtons(); });
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || !keys[e.key.toLowerCase()]) return;
+  e.preventDefault();
+  if (e.repeat && e.key === ' ') return;   // holding the space bar must not toggle play / pause again and again
+  const f = document.activeElement;
+  if (f && f !== document.body && f.blur) f.blur();   // a focused button or slider must not react as well
+  acts[keys[e.key.toLowerCase()]](); syncButtons();
+});
+// releasing the space bar would also click a focused button: the space bar only toggles play / pause
+window.addEventListener('keyup', e => { if (e.key === ' ') e.preventDefault(); });
+document.addEventListener('fullscreenchange', syncButtons);
+syncButtons();
+
+// ---- drawing -------------------------------------------------------------------
+function draw() {
+  const t0 = now - NOW_FRAC * tView, t1 = t0 + tView;
+  const x = t => (t - t0) / tView * W;
+  // layout: the inputs above, the outputs in a frame below
+  const yTop = 6, fy0 = H * (1 - OUT_FRAC), fy1 = H - 6;
+  const rowH = (fy0 - 14 - yTop) / N_IN, rowY = a => yTop + (a + 0.5) * rowH;
+  const bandH = (fy1 - fy0 - 8) / N_OUT, bandTop = o => fy0 + 4 + o * bandH;
+  const yU = (o, u) => bandTop(o) + bandH - 5 - (u + 1) / (U_SPIKE + 1) * (bandH - 10);
+  const showBox = chainOn && chain && chain.phase >= 1;
+  const showIn = chainOn && chain && chain.phase >= 2;
+
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W, H);
+
+  // shaded area: the last T_SHADE before the present instant, always anchored to the present bar
+  // (always shown with the motif mode and in zen mode, otherwise with the key s)
+  if (shade || chainOn || zen) {
+    ctx.globalAlpha = 0.18; ctx.fillStyle = COL.now;
+    ctx.fillRect(x(now - T_SHADE), 0, x(now) - x(now - T_SHADE), H);
+    ctx.globalAlpha = 1;
+  }
+
+  // the window of T_SHADE which ends at the explained output spike, dashed like the boxes of the figure
+  if (showBox) {
+    ctx.strokeStyle = COL.now; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    for (const shift of SHIFTS) ctx.strokeRect(x(chain.tr - T_SHADE + shift), 1, x(chain.tr + shift) - x(chain.tr - T_SHADE + shift), H - 2);
+    ctx.setLineDash([]);
+  }
+
+  // bar of the present instant, behind the spikes like the shaded area
+  ctx.fillStyle = COL.present; ctx.fillRect(x(now) - 1, 0, 2, H);
+
+  // one very thin line per input neuron
+  ctx.strokeStyle = COL.line; ctx.lineWidth = rowH >= 3 ? 1 : 0.5; ctx.beginPath();
+  for (let a = 0; a < N_IN; a++) { const y = rowY(a); ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+
+  // the frame of the output neurons, and in each band the reset level (-1) and the threshold (0)
+  ctx.strokeStyle = COL.frame; ctx.lineWidth = 1.5; ctx.strokeRect(4, fy0, W - 8, fy1 - fy0);
+  for (let o = 0; o < N_OUT; o++) {
+    ctx.strokeStyle = COL.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(4, yU(o, -1)); ctx.lineTo(W - 4, yU(o, -1)); ctx.stroke();
+    ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(4, yU(o, 0)); ctx.lineTo(W - 4, yU(o, 0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // delay lines from the input spikes of the motif to the explained output spike. Paused, at the third press
+  // of d, they are animated from the past to the present: the spike with the longest delay leaves first, a spike
+  // slides along its connection to the postsynaptic site, leaving the line behind it, the travel lasts in
+  // proportion to the delay and they all arrive together on the output spike. While playing, the lines are static.
+  if (chainOn && chain && (chain.phase === 3 || (!paused && delays))) {
+    const animated = chain.phase === 3 && paused, p = animated ? clamp((clock() - animStart) / ANIM_MS, 0, 1) : 1;
+    const Dm = Math.max(1e-9, ...chain.contrib.map(c => c.d * DT));
+    ctx.strokeStyle = hsl(HUE(chain.o)); ctx.fillStyle = COL.fg; ctx.lineWidth = 1;
+    ctx.font = '11px ui-monospace, Menlo, monospace';
+    for (const shift of SHIFTS) {
+      const x2 = x(chain.tr + shift), y2 = yU(chain.o, U_SPIKE);
+      for (const c of chain.contrib) {
+        const x1 = x(c.t + shift), y1 = rowY(spikes.n[c.j]);
+        if (Math.max(x1, x2) < -50 || Math.min(x1, x2) > W + 50) continue;
+        const p0 = 1 - c.d * DT / Dm;                                      // progress at which this spike leaves
+        const f = p >= 1 ? 1 : p0 >= 1 ? 0 : clamp((p - p0) / (1 - p0), 0, 1);   // fraction of the connection travelled
+        if (f <= 0) continue;
+        const xe = x1 + f * (x2 - x1), ye = y1 + f * (y2 - y1);
+        ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(xe, ye); ctx.stroke();
+        if (f >= 0.5) ctx.fillText(`${c.d} ms`, (x1 + x2) / 2, (y1 + y2) / 2 - 3);
+        if (f < 1) {   // the travelling spike
+          ctx.globalAlpha = 1; ctx.fillStyle = hsl(HUE(chain.o), 90, 92); ctx.shadowColor = hsl(HUE(chain.o)); ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(xe, ye, 4, 0, 2 * Math.PI); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = COL.fg;
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // input spikes: the present is brighter than the past; the future is progressively paler
+  const tick = Math.max(1, 0.9 * rowH);   // a spike sits on the line of its neuron, 90% of the distance between two lines high
+  for (const shift of SHIFTS) {
+    const a = lowerBound(t0 - shift), b = lowerBound(t1 - shift);
+    for (let k = a; k < b; k++) {
+      const t = spikes.t[k] + shift, age = now - t;          // age > 0 past, < 0 future
+      let alpha = age < 0 ? 0.04 + 0.3 * Math.exp(age / 0.5) : 0.6 + 0.4 * Math.exp(-age / 0.8), color = COL.spike, w = 2.5;
+      const fl = age >= 0 && age < FLASH ? 1 - age / FLASH : 0;   // flash of the spike which has just reached the present
+      if (showIn && chain.inSet.has(k)) { color = hsl(HUE(chain.o), 70, 90); w = 4; alpha = 1; }
+      else if (hueMap.has(k)) color = hsl(hueMap.get(k));
+      let h = tick;
+      if (fl > 0) {
+        alpha = 1; w += 5 * fl; h *= 1 + fl;
+        if (color === COL.spike) color = '#ffffff';
+        ctx.shadowColor = COL.present; ctx.shadowBlur = 14 * fl;
+      }
+      ctx.globalAlpha = alpha; ctx.fillStyle = color;
+      ctx.fillRect(x(t) - w / 2, rowY(spikes.n[k]) - h / 2, w, h);
+      if (fl > 0) ctx.shadowBlur = 0;
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // output neurons: the membrane potential, the past in full colour and the future paler
+  for (let o = 0; o < N_OUT; o++) {
+    const pts = [];
+    for (const shift of SHIFTS) {
+      const b0 = Math.max(0, Math.floor((t0 - shift) / DT)), b1 = Math.min(N_BIN - 1, Math.ceil((t1 - shift) / DT));
+      for (let b = b0; b <= b1; b++) { const t = b * DT + shift; pts.push({x: x(t), y: yU(o, U[o][b]), past: t <= now}); }
+    }
+    ctx.strokeStyle = hsl(HUE(o)); ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+    for (const past of [true, false]) {
+      ctx.globalAlpha = past ? 0.95 : 0.3; ctx.beginPath();
+      let pen = false;
+      for (const p of pts) {
+        if (p.past !== past) { pen = false; continue; }
+        if (!pen) { ctx.moveTo(p.x, p.y); pen = true; } else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // output spikes: a vertical line up to U_SPIKE; the explained one is enlarged, a spike reaching the present flashes
+  for (const shift of SHIFTS) {
+    const a = lowerBoundOut(t0 - shift), b = lowerBoundOut(t1 - shift);
+    for (let k = a; k < b; k++) {
+      const t = outT[k] + shift, age = now - t, o = outO[k];
+      const fl = age >= 0 && age < FLASH ? 1 - age / FLASH : 0;
+      const big = chainOn && chain && k === chain.ref && chain.phase >= 1;
+      let w = 2, alpha = t <= now ? 0.95 : 0.3;
+      if (big) { w += 4; alpha = 1; ctx.shadowColor = hsl(HUE(o)); ctx.shadowBlur = 14; }
+      else if (fl > 0) { w += 4 * fl; alpha = 1; ctx.shadowColor = COL.present; ctx.shadowBlur = 14 * fl; }
+      ctx.globalAlpha = alpha; ctx.fillStyle = big || fl > 0 ? hsl(HUE(o), 80, 90) : hsl(HUE(o));
+      ctx.fillRect(x(t) - w / 2, yU(o, U_SPIKE), w, yU(o, -1) - yU(o, U_SPIKE));
+      if (big || fl > 0) ctx.shadowBlur = 0;
+    }
+  }
+  ctx.globalAlpha = 1;
+  // the potential of each output neuron at the present
+  const bNow = Math.floor(now / DT + 1e-6) % N_BIN;
+  for (let o = 0; o < N_OUT; o++) {
+    ctx.fillStyle = hsl(HUE(o), 75, 100); ctx.beginPath(); ctx.arc(x(now), yU(o, U[o][bNow]), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  const info = chainOn && chain ? `   ·   motif: output spike ${stepN}, neuron ${chain.o + 1}, ${['selected', 'window', 'motif', 'delays'][chain.phase]}` : '';
+  const uNow = U.map(u => u[bNow].toFixed(2)).join(' ');
+  if (zen) zenInfo.textContent = `${Math.round(tView * 1000)} ms  ·  ${paused ? 'paused' : pausing ? 'pausing…' : '×' + speed.toFixed(2)}`;
+  hud.textContent = `t = ${now.toFixed(3)} s / ${T_TOTAL} s   ·   u = ${uNow}   ·   ×${speed.toFixed(2)}${info}${pausing ? '   ·   pausing…' : ''}`;
+}
+
+function frame(ts) {
+  const dt = (ts - last) / 1000; last = ts;
+  if (!paused) {
+    let nn = now + dt * speed;
+    if (pausing && nn >= pauseAt) { nn = pauseAt; paused = true; pausing = false; syncButtons(); }   // arrived on the output spike
+    else if (pausing && nn >= T_TOTAL) pauseAt -= T_TOTAL;
+    now = nn % T_TOTAL;
+    if (paused && chainOn) setRef(latestOut(now), 0);   // stopped on an output spike: start the sequence from it
+    else if (chainOn) {   // dynamic mode: the reference follows the latest output spike
+      const r = latestOut(now);
+      if (r !== chain.ref) setRef(r, 2);
+      chain.phase = 2;
+    }
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
