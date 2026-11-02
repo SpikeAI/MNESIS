@@ -45,7 +45,7 @@
     en temps réel. Le passé s'estompe, le futur est progressivement plus pâle.
   - Présent : une barre bleutée à 80 % de la largeur, dessinée derrière les spikes.
   - Zone ombrée : les 41 ms qui précèdent le présent. Elle est toujours ancrée à la barre du présent
-    et la suit de façon continue, sans saccade. Affichée avec la touche s, toujours avec la chaîne
+    et la suit de façon continue, sans saccade. Affichée avec la touche w, toujours avec la chaîne
     et en mode zen.
   - Visibilité : spikes larges et clairs ; un spike qui atteint le présent « flashe » pendant 150 ms
     (blanc, halo bleu, élargi ; un spike déjà coloré par la chaîne garde sa teinte).
@@ -91,12 +91,17 @@
   Explication d'une prédiction (touche d, en pause avec la chaîne), en 3 appuis
   1. Le spike suivant est mis en évidence, avec le cadre en pointillés de la fenêtre de 41 ms qui se
      termine sur lui et tous les spikes qu'il contient.
-  2. Les délais sont affichés : une ligne relie chaque spike du cadre au spike suivant, avec son
-     délai en ms (tous inférieurs à 41 ms), comme les trajectoires du panneau de droite de la
-     figure. Seuls les délais de la prédiction en cours sont montrés.
+  2. Les délais apparaissent, en une animation de 2,5 s, du passé vers le présent : chaque spike du
+     cadre part de sa synapse et un spike glisse le long de sa connexion jusqu'au spike suivant, en
+     laissant la ligne derrière lui, avec son délai en ms (tous inférieurs à 41 ms), comme les
+     trajectoires du panneau de droite de la figure. Le spike du plus long délai part le premier ;
+     la durée du trajet est proportionnelle au délai ; tous arrivent en même temps sur le spike
+     prédit. Seuls les délais de la prédiction en cours sont montrés. Pour la rejouer : b puis d.
   3. Ces délais suffisent à prédire le spike suivant : la fenêtre de contexte se déplace sur lui,
      qui devient la nouvelle référence. On repart de l'étape 1.
   Pendant la lecture, d affiche ou masque seulement les lignes de délai (masquées au départ).
+  Le mode délais commence en pause et continue en direct : relancer la lecture (espace ou Play)
+  alors que les délais sont affichés (2e appui) garde les lignes de délai.
 
   Mode dynamique (lecture, éventuellement ralentie)
   - Le contexte coloré saute de spike en spike quand le présent atteint le suivant. À pleine
@@ -120,16 +125,33 @@
      c        Chain           mode chaîne
      d        Delays          explication en 3 appuis (en pause) ; lignes de délai (en lecture)
      n / b    Next / Back     spike suivant / précédent
-     s        41 ms           zone ombrée
+     s        Scenario        scénario : une étape à chaque appui (Maj + S : l'étape précédente)
+     w        41 ms           zone ombrée
      r        Reset view      vue (tous les neurones, période de 3 s, vitesse ×1) et couleurs de la
                               chaîne ; la chaîne reste active et repart du présent
      f        Fullscreen      plein écran
      z        Zen             mode zen
      ? ou h   Help            aide à l'écran
 
-  Ordre des boutons : il suit la séquence de la présentation, sans numéros affichés : Slower, Pause,
-  Chain, Delays, Next, Play ; puis, sur une seconde ligne, Back, Faster, 41 ms, Reset view,
-  Fullscreen, Zen, Help.
+  Ordre des boutons : il suit la séquence de la présentation, sans numéros affichés : Scenario,
+  Slower, Pause, Chain, Delays, Next, Play ; puis, sur une seconde ligne, Back, Faster, 41 ms,
+  Reset view, Fullscreen, Zen, Help.
+
+  Scénario (touche s), une étape à chaque appui ; une légende dit ce qui est montré
+  1. Raster brut : 512 neurones, à vitesse réelle.
+  2. Ralentir à ×0,02 : les spikes deviennent individuels.
+  3. 4. 5. Zoom en trois étapes, géométriquement progressives, de la fenêtre de 3 s à une largeur
+  de trois fois un motif (3 x 41 ms = 123 ms) : environ 1034 ms, 357 ms puis 123 ms.
+  6. Pause sur le prochain spike.
+  7. Mode chaîne (c) : le spike courant et son contexte de 41 ms.
+  8. d : le spike suivant et le cadre en pointillés.
+  9. d : les délais apparaissent (animation).  10. d : la fenêtre se déplace sur le spike prédit.
+  11. 12. 13. Une deuxième prédiction en trois étapes, les délais apparaissant de nouveau.
+  14. 15. 16. n trois fois : à chaque spike suivant, la prédiction et ses délais apparaissent.
+  17. Lecture : la chaîne se déroule seule ; le mode délais, commencé en pause, continue en direct.
+  18. Réinitialisation ; un nouvel appui recommence. Maj + S revient d'une étape (l'état initial
+  est rétabli et les étapes sont rejouées, sans attendre). Une pause en attente est terminée
+  tout de suite par l'appui suivant. r remet le scénario au début. La légende est masquée en zen.
 
   Les touches lisent le caractère tapé (e.key) et non la touche physique, pour fonctionner sur un
   clavier AZERTY. Esc n'est pas utilisé : il sert à sortir du plein écran.
@@ -158,7 +180,7 @@
 
  7. PARAMÈTRES (constantes en tête du script)
 ====================================================================================================
-  N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH, DT.
+  N_NEURON, T_TOTAL, T_VIEW, NOW_FRAC, RATE, N_MIN, T_SHADE (41 ms), FLASH, ANIM_MS, DT.
 -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Izhikevich raster</title>
@@ -192,7 +214,10 @@
   #help dt { color: var(--now); } #help dd { margin: 0; color: var(--dim); }
   /* zen mode: no interface, only the width of the time window and the speed (or "paused") as text */
   #zenInfo { position: fixed; left: 12px; bottom: 8px; color: var(--dim); pointer-events: none; display: none; }
-  body.zen #ui, body.zen #hud { display: none; }
+  #caption { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); max-width: 80vw; padding: 6px 14px;
+             border-radius: 8px; font-size: 15px; color: var(--fg); pointer-events: none; display: none;
+             background: color-mix(in srgb, var(--bg) 80%, transparent); border: 1px solid var(--line); }
+  body.zen #ui, body.zen #hud, body.zen #caption { display: none; }
   body.zen #zenInfo { display: block; }
 </style>
 </head>
@@ -202,6 +227,7 @@
   <div id="btns">
     <!-- the first buttons follow the sequence of the talk: 1 slow down, 2 pause and show a chain with its delays,
          3 step to the next spikes, 4 play again (the order of the buttons; no numbers on screen) -->
+    <button data-act="scenario">Scenario <kbd>s</kbd></button>
     <button data-act="slower">Slower <kbd>k</kbd></button>
     <button data-act="pause">Pause <kbd>space</kbd></button>
     <button data-act="chain">Chain <kbd>c</kbd></button>
@@ -211,7 +237,7 @@
     <span class="sep"></span>
     <button data-act="back">Back <kbd>b</kbd></button>
     <button data-act="faster">Faster <kbd>l</kbd></button>
-    <button data-act="shade">41 ms <kbd>s</kbd></button>
+    <button data-act="shade">41 ms <kbd>w</kbd></button>
     <button data-act="reset">Reset view <kbd>r</kbd></button>
     <button data-act="full">Fullscreen <kbd>f</kbd></button>
     <button data-act="zen">Zen <kbd>z</kbd></button>
@@ -224,6 +250,7 @@
     <input id="speed" autocomplete="off" type="range" min="-1.7" max="0" step="0.01" value="0"><output id="speedOut"></output>
   </div>
 </div>
+<div id="caption"></div>
 <div id="zenInfo"></div>
 <div id="hud"></div>
 <div id="help"><div>
@@ -232,8 +259,9 @@
     <dt>space</dt><dd>pause / play: a pause waits for the closest next spike and stops on it (press again to cancel); the buttons Pause and Play do each half</dd>
     <dt>c</dt><dd>chain: the current spike and its 41 ms context window in colour; the next spike (blue) appears at the first press of d, or while playing</dd>
     <dt>n / b</dt><dd>next / back, spike by spike (with the chain, the context window moves onto the next spike)</dd>
-    <dt>d</dt><dd>with the chain, paused: explains one prediction in 3 presses &mdash; (1) the next spike and the dashed box of the 41 ms before it, (2) the delays from the spikes of the box to it, (3) the context window moves onto it. While playing: show / hide the delay lines</dd>
-    <dt>s</dt><dd>shade the last 41 ms before the present (always shown with the chain and in zen mode)</dd>
+    <dt>d</dt><dd>with the chain, paused: explains one prediction in 3 presses &mdash; (1) the next spike and the dashed box of the 41 ms before it, (2) the delays, which appear from the past to the predicted spike (a spike slides along each connection and they all arrive together; b then d replays it), (3) the context window moves onto it. While playing: show / hide the delay lines</dd>
+    <dt>s</dt><dd>scenario: the presentation step by step, one step per press (shift + S: the previous step); the caption says what is shown</dd>
+    <dt>w</dt><dd>shade the last 41 ms before the present (always shown with the chain and in zen mode)</dd>
     <dt>k / l</dt><dd>slower / faster</dd>
     <dt>r</dt><dd>reset the view (all neurons, the 3 s period, speed ×1) and the colours of the chain</dd>
     <dt>f / z</dt><dd>fullscreen / zen mode (no interface; the only text is the width of the time window and the speed, or &laquo;paused&raquo;; z leaves it)</dd>
@@ -263,6 +291,7 @@ const RATE     = 1;        // Hz, background firing rate of each neuron
 const N_MIN    = 128;      // fewest neurons shown when zoomed in
 const T_SHADE  = 0.041;    // s, duration of the context window
 const FLASH    = 0.15;     // s, duration of the flash of a spike reaching the present
+const ANIM_MS  = 2500;     // ms, duration of the appearance of the delays (2nd press of d)
 const DT       = 0.001;    // s, time step: spike times are multiples of it, and at most one neuron fires at each step
 const SHIFTS   = [-T_TOTAL, 0, T_TOTAL];   // wrap-around of the loop
 
@@ -415,6 +444,8 @@ canvas.addEventListener('gesturechange', e => { e.preventDefault(); zoomTime(g0 
 
 // ---- state ---------------------------------------------------------------------
 let now = 0, paused = false, pausing = false, pauseAt = 0, shade = false, last = performance.now();
+let animStart = 0;   // clock time of the start of the appearance of the delays
+const clock = () => performance.now();
 let chainOn = false, delays = false, zen = false;   // delays: the delay lines while playing, off until the Delays button / key d
 
 // chain: the context window (spikes of the last T_SHADE up to and including the reference spike `ref`),
@@ -481,7 +512,7 @@ function stepBack() {
 //   2. the delays from the spikes of this box to the next spike are shown
 //   3. these delays are enough to predict the next spike: the context window moves onto it
 function explain() {
-  if (chain.phase < 2) chain.phase++;
+  if (chain.phase < 2) { chain.phase++; if (chain.phase === 2) animStart = clock(); }
   else { const r = chain.next; setRef(r, 0); now = spikes.t[r]; }
 }
 
@@ -490,6 +521,7 @@ function resetView() {
   span.value = spanF = T_VIEW * 1000; updateSpan();
   speedS.value = 0; updateSpeed();
   chainOff();   // the colours too: the hues are cleared
+  scenarioClear();
   if (chainOn) setRef(latestIndex(now), paused ? 0 : 1);   // the chain stays active, restarting from the present
 }
 
@@ -501,8 +533,12 @@ const acts = {
     pauseAt = k < M ? spikes.t[k] : spikes.t[0] + T_TOTAL;   // time of the spike, in the frame of `now` (may be > T_TOTAL)
     pausing = true;
   },
-  play:   () => { paused = false; pausing = false; },
+  play:   () => {   // the delays, shown while paused (2nd press of d), go on live when the playing resumes
+    if (paused && chainOn && chain && chain.phase === 2) delays = true;
+    paused = false; pausing = false;
+  },
   shade:  () => { shade = !shade; },
+  scenario: () => scenarioNext(),
   chain:  () => {
     chainOn = !chainOn;
     if (!chainOn) { chainOff(); return; }
@@ -524,11 +560,64 @@ const acts = {
   },
   zen:    () => { zen = !zen; document.body.classList.toggle('zen', zen); },
 };
-const keys = {' ': 'toggle', s: 'shade', c: 'chain', n: 'step', b: 'back', r: 'reset', '?': 'help', h: 'help', d: 'delays', k: 'slower', l: 'faster', f: 'full', z: 'zen'};
+// ---- scenario (key s): the presentation, one step per press; shift + S goes back one step ------------
+const D_MS = 41;              // ms, the longest delay of a motif (the context window)
+const SPEED_LOG_MIN = -1.7;   // the minimum of the speed slider: x0.02
+const caption = document.getElementById('caption');
+let scen = -1;                // index of the step shown (-1: none)
+function setSpeedLog(v) { speedS.value = v; updateSpeed(); }
+const ZOOM_MS = 3 * D_MS;     // the final window: three times the longest delay of a motif (3 x 41 ms)
+const zoomMs = k => Math.round(T_VIEW * 1000 * Math.pow(ZOOM_MS / (T_VIEW * 1000), k / 3));   // geometric stages
+function setSpanMs(v) { span.value = spanF = v; updateSpan(); }
+function settlePause() {      // ends a pause which still waits for the next spike
+  if (!pausing) return;
+  now = pauseAt % T_TOTAL; paused = true; pausing = false;
+  if (chainOn) setRef(latestIndex(now), 0);   // stopped on a spike: start from it
+}
+function scenarioInit() {     // the initial state of the presentation, so that a replay is always the same
+  paused = false; pausing = false; shade = false; delays = false;
+  chainOn = false; chainOff();
+  now = 0; setSpeedLog(0); span.value = spanF = T_VIEW * 1000; updateSpan();
+  nF = N_NEURON; firstF = 0; updateView();
+}
+
+const scenario = [
+  {text: 'Raw raster: 512 neurons firing at random', run: () => scenarioInit()},
+  {text: 'Slow down to ×0.02: the individual spikes', run: () => setSpeedLog(SPEED_LOG_MIN)},
+  {text: 'Zoom 1/3: a window of ' + zoomMs(1) + ' ms', run: () => setSpanMs(zoomMs(1))},
+  {text: 'Zoom 2/3: a window of ' + zoomMs(2) + ' ms', run: () => setSpanMs(zoomMs(2))},
+  {text: 'Zoom 3/3: a window of ' + zoomMs(3) + ' ms, three times a motif (3 × 41 ms)', run: () => setSpanMs(zoomMs(3))},
+  {text: 'Pause on the next spike', run: () => { if (!paused && !pausing) acts.pause(); }},
+  {text: 'Chain mode: the current spike and its 41 ms context window', run: () => { settlePause(); if (!chainOn) acts.chain(); }},
+  {text: 'd: the next spike, and the 41 ms window which ends at it', run: () => toPhase(1)},
+  {text: 'd: the delays appear, from the past to the predicted spike', run: () => toPhase(2)},
+  {text: 'd: the context window moves onto the predicted spike', run: () => { toPhase(2); explain(); }},
+  {text: 'A second prediction: the next spike and its window', run: () => toPhase(1)},
+  {text: 'Its delays appear again', run: () => toPhase(2)},
+  {text: 'The window moves onto the second predicted spike', run: () => { toPhase(2); explain(); }},
+  {text: 'n: the next spike, its prediction and its delays appear', run: () => nextWithDelays()},
+  {text: 'n: again, a new prediction and its delays', run: () => nextWithDelays()},
+  {text: 'n: and again', run: () => nextWithDelays()},
+  {text: 'Play: the chain unrolls by itself, d shows the delays', run: () => { acts.play(); setSpeedLog(-1); delays = true; }},
+  {text: 'Reset: press s to start again', run: () => scenarioInit()},
+];
+function toPhase(p) { settlePause(); while (chain.phase < p) explain(); }
+function nextWithDelays() { settlePause(); step(); toPhase(2); }   // the next spike as reference, then its prediction and delays
+function scenarioShow() { caption.textContent = scen < 0 ? '' : `${scen + 1}/${scenario.length} · ${scenario[scen].text}`; caption.style.display = scen < 0 ? 'none' : ''; }
+function scenarioClear() { scen = -1; scenarioShow(); }
+function scenarioGo(i) {      // the state after step i: the initial state, then the steps 0 to i
+  scenarioInit();
+  for (let j = 0; j <= i; j++) scenario[j].run();
+  scen = i; scenarioShow();
+}
+function scenarioNext() { scenarioGo(scen + 1 >= scenario.length ? 0 : scen + 1); }
+function scenarioBack() { if (scen <= 0) { scenarioInit(); scenarioClear(); } else scenarioGo(scen - 1); }
+
+const keys = {' ': 'toggle', s: 'scenario', w: 'shade', c: 'chain', n: 'step', b: 'back', r: 'reset', '?': 'help', h: 'help', d: 'delays', k: 'slower', l: 'faster', f: 'full', z: 'zen'};
 
 const buttons = document.querySelectorAll('button[data-act]');
 function syncButtons() {
-  const on = {pause: paused || pausing, play: !paused && !pausing, shade, chain: chainOn, delays: !!chain && chainOn && (paused ? chain.phase === 2 : delays),
+  const on = {pause: paused || pausing, play: !paused && !pausing, scenario: scen >= 0, shade, chain: chainOn, delays: !!chain && chainOn && (paused ? chain.phase === 2 : delays),
               full: !!document.fullscreenElement, zen};
   for (const b of buttons) {
     b.classList.toggle('on', !!on[b.dataset.act]);
@@ -542,7 +631,9 @@ window.addEventListener('keydown', e => {
   if (e.repeat && e.key === ' ') return;   // holding the space bar must not toggle play / pause again and again
   const f = document.activeElement;
   if (f && f !== document.body && f.blur) f.blur();   // a focused button or slider must not react as well
-  acts[keys[e.key.toLowerCase()]](); syncButtons();
+  const name = keys[e.key.toLowerCase()];
+  if (name === 'scenario' && e.shiftKey) scenarioBack(); else acts[name]();   // shift + S: the previous step
+  syncButtons();
 });
 // releasing the space bar would also click a focused button: the space bar only toggles play / pause
 window.addEventListener('keyup', e => { if (e.key === ' ') e.preventDefault(); });
@@ -551,6 +642,14 @@ syncButtons();
 
 // ---- drawing -------------------------------------------------------------------
 const hsl = (h, l = 60, sat = 80) => `hsl(${h.toFixed(0)} ${sat}% ${l}%)`;
+// a small arrowhead with its tip at (px, py), pointing along (dx, dy)
+function arrowhead(px, py, dx, dy, size) {
+  const L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  ctx.beginPath(); ctx.moveTo(px, py);
+  ctx.lineTo(px - size * ux + size * 0.5 * uy, py - size * uy - size * 0.5 * ux);
+  ctx.lineTo(px - size * ux - size * 0.5 * uy, py - size * uy + size * 0.5 * ux);
+  ctx.closePath(); ctx.fill();
+}
 
 function draw() {
   const t0 = now - NOW_FRAC * tView, t1 = t0 + tView;
@@ -585,23 +684,36 @@ function draw() {
   for (let i = 0; i < nShown; i++) { const y = (i + 0.5) * rowH; ctx.moveTo(0, y); ctx.lineTo(W, y); }
   ctx.stroke();
 
-  // delay lines from the spikes of a context window to the spike they predict
-  function group(g, alpha, label) {
+  // delay lines from the spikes of a context window to the spike they predict. Paused, at the second press of d,
+  // they appear from the past to the present: the spike with the longest delay leaves first, a spike slides along
+  // its connection to the predicted spike, leaving the line behind it; the travel lasts in proportion to the
+  // delay and they all arrive together on the predicted spike. While playing, the lines are static (p = 1).
+  function group(g, alpha, label, p = 1) {
     ctx.strokeStyle = COL.next; ctx.fillStyle = COL.fg; ctx.lineWidth = 1; ctx.font = '11px ui-monospace, Menlo, monospace';
-    ctx.globalAlpha = alpha;
+    const Dm = Math.max(1e-9, ...g.src.map(s => g.tt - s.t));
     for (const shift of SHIFTS) {
       const x2 = x(g.tt + shift), y2 = rowY(spikes.n[g.tn]);
       for (const s of g.src) {
         const x1 = x(s.t + shift), y1 = rowY(spikes.n[s.j]);
         if (Math.max(x1, x2) < -50 || Math.min(x1, x2) > W + 50) continue;
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-        if (label) ctx.fillText(`${((g.tt - s.t) * 1000).toFixed(0)} ms`, (x1 + x2) / 2, (y1 + y2) / 2 - 3);
+        const p0 = 1 - (g.tt - s.t) / Dm;                                           // progress at which this spike leaves
+        const f = p >= 1 ? 1 : p0 >= 1 ? 0 : clamp((p - p0) / (1 - p0), 0, 1);   // fraction of the connection travelled
+        if (f <= 0) continue;
+        const xe = x1 + f * (x2 - x1), ye = y1 + f * (y2 - y1);
+        ctx.globalAlpha = alpha; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(xe, ye); ctx.stroke();
+        if (label && f >= 0.5) ctx.fillText(`${((g.tt - s.t) * 1000).toFixed(0)} ms`, (x1 + x2) / 2, (y1 + y2) / 2 - 3);
+        if (f >= 1) { ctx.fillStyle = COL.next; arrowhead(x2, y2, x2 - x1, y2 - y1, 7); ctx.fillStyle = COL.fg; }
+        else {   // the travelling spike
+          ctx.globalAlpha = 1; ctx.fillStyle = '#9db8ff'; ctx.shadowColor = COL.next; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(xe, ye, 4, 0, 2 * Math.PI); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = COL.fg;
+        }
       }
     }
     ctx.globalAlpha = 1;
   }
   if (chainOn && chain && (chain.phase === 2 || (!paused && delays))) {
-    if (showNext) group({src: chain.src, tt: chain.nextT, tn: chain.next}, 0.8, true);
+    const p = chain.phase === 2 && paused ? clamp((clock() - animStart) / ANIM_MS, 0, 1) : 1;
+    if (showNext) group({src: chain.src, tt: chain.nextT, tn: chain.next}, 0.8, true, p);
   }
 
   // spikes: the present is brighter than the past; the future is progressively paler
